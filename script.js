@@ -453,13 +453,13 @@ function applyAnimation(element, item) {
     switch(item.animation) {
         case 'creditsScroll':
             gsap.set(element, { 
-                bottom: '-20%',
+                top: '100%',
                 left: '50%',
                 xPercent: -50,
                 opacity: 1
             });
             gsap.to(element, {
-                bottom: '110%',
+                top: '-100%',
                 duration: duration,
                 delay: delay,
                 ease: easing || 'none'
@@ -589,5 +589,255 @@ function initExportControls() {
 }
 
 async function startExport() {
-    alert('Export feature requires FFmpeg.wasm setup. For now, use screen recording software to capture the preview.');
+    const resolution = parseInt(document.getElementById('exportRes').value);
+    const fps = parseInt(document.getElementById('exportFps').value);
+    const format = document.getElementById('exportFormat').value;
+    const progress = document.getElementById('exportProgress');
+    const exportBtn = document.getElementById('exportBtn');
+    
+    exportBtn.disabled = true;
+    progress.textContent = 'Loading FFmpeg...';
+    
+    try {
+        // Load FFmpeg
+        const { FFmpeg } = window.FFmpegWASM;
+        const ffmpeg = new FFmpeg();
+        
+        ffmpeg.on('log', ({ message }) => {
+            console.log(message);
+        });
+        
+        ffmpeg.on('progress', ({ progress: prog }) => {
+            if (prog > 0 && prog < 1) {
+                progress.textContent = `Encoding: ${Math.round(prog * 100)}%`;
+            }
+        });
+        
+        await ffmpeg.load();
+        progress.textContent = 'Preparing frames...';
+        
+        // Calculate duration - text must fully exit screen
+        let maxEndTime = 0;
+        textItems.forEach(item => {
+            const endTime = item.delay + item.duration;
+            if (endTime > maxEndTime) maxEndTime = endTime;
+        });
+        
+        const totalDuration = maxEndTime;
+        const width = resolution === 720 ? 1280 : 1920;
+        const height = resolution;
+        const totalFrames = Math.ceil(totalDuration * fps);
+        
+        progress.textContent = `Rendering ${totalFrames} frames...`;
+        
+        // Create canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        
+        // Render all frames
+        for (let i = 0; i < totalFrames; i++) {
+            const time = i / fps;
+            await renderFrameToCanvas(ctx, canvas, time, width, height);
+            
+            // Convert to PNG
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            const arrayBuffer = await blob.arrayBuffer();
+            const uint8Array = new Uint8Array(arrayBuffer);
+            
+            // Write to FFmpeg
+            const filename = `frame${String(i).padStart(6, '0')}.png`;
+            await ffmpeg.writeFile(filename, uint8Array);
+            
+            if (i % 10 === 0) {
+                progress.textContent = `Rendering: ${Math.round((i / totalFrames) * 100)}%`;
+            }
+        }
+        
+        progress.textContent = 'Encoding video...';
+        
+        // Encode video
+        if (format === 'mp4') {
+            if (musicData) {
+                // Convert music to proper format
+                const musicResponse = await fetch(musicData);
+                const musicBlob = await musicResponse.blob();
+                const musicBuffer = await musicBlob.arrayBuffer();
+                await ffmpeg.writeFile('audio.mp3', new Uint8Array(musicBuffer));
+                
+                const musicStart = parseFloat(document.getElementById('musicStart').value) || 0;
+                
+                await ffmpeg.exec([
+                    '-framerate', String(fps),
+                    '-i', 'frame%06d.png',
+                    '-ss', String(musicStart),
+                    '-i', 'audio.mp3',
+                    '-c:v', 'libx264',
+                    '-preset', 'medium',
+                    '-crf', '23',
+                    '-pix_fmt', 'yuv420p',
+                    '-c:a', 'aac',
+                    '-b:a', '192k',
+                    '-shortest',
+                    '-movflags', '+faststart',
+                    'output.mp4'
+                ]);
+            } else {
+                await ffmpeg.exec([
+                    '-framerate', String(fps),
+                    '-i', 'frame%06d.png',
+                    '-c:v', 'libx264',
+                    '-preset', 'medium',
+                    '-crf', '23',
+                    '-pix_fmt', 'yuv420p',
+                    '-movflags', '+faststart',
+                    'output.mp4'
+                ]);
+            }
+            
+            const data = await ffmpeg.readFile('output.mp4');
+            downloadFile(data, 'credits.mp4', 'video/mp4');
+        } else {
+            // GIF export
+            await ffmpeg.exec([
+                '-framerate', String(fps),
+                '-i', 'frame%06d.png',
+                '-vf', 'fps=15,scale=' + width + ':-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse',
+                '-loop', '0',
+                'output.gif'
+            ]);
+            
+            const data = await ffmpeg.readFile('output.gif');
+            downloadFile(data, 'credits.gif', 'image/gif');
+        }
+        
+        progress.textContent = 'Export complete!';
+        exportBtn.disabled = false;
+        
+    } catch (error) {
+        console.error('Export error:', error);
+        progress.textContent = 'Export failed: ' + error.message;
+        exportBtn.disabled = false;
+    }
+}
+
+function downloadFile(data, filename, mimeType) {
+    const blob = new Blob([data.buffer], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+async function renderFrameToCanvas(ctx, canvas, time, width, height) {
+    // Clear
+    ctx.clearRect(0, 0, width, height);
+    
+    // Background
+    const bgType = document.getElementById('bgType').value;
+    
+    if (bgType === 'solid') {
+        ctx.fillStyle = document.getElementById('bgColor').value;
+        ctx.fillRect(0, 0, width, height);
+    } else if (bgType === 'gradient') {
+        const c1 = document.getElementById('gradColor1').value;
+        const c2 = document.getElementById('gradColor2').value;
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, c1);
+        gradient.addColorStop(1, c2);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+    } else if (bgType === 'image' && bgImageData) {
+        const img = await loadImage(bgImageData);
+        ctx.drawImage(img, 0, 0, width, height);
+    } else if (bgType === 'url' && bgImageData) {
+        const img = await loadImage(bgImageData);
+        ctx.drawImage(img, 0, 0, width, height);
+    }
+    
+    // Render text items
+    textItems.forEach(item => {
+        const startTime = item.delay;
+        const endTime = item.delay + item.duration;
+        
+        if (time >= startTime && time <= endTime) {
+            const progress = (time - startTime) / item.duration;
+            renderTextItem(ctx, item, progress, width, height);
+        }
+    });
+}
+
+function renderTextItem(ctx, item, progress, width, height) {
+    ctx.save();
+    
+    // Parse styled text
+    const lines = item.content.split('\n');
+    
+    ctx.font = `${item.weight} ${item.size}px ${item.font}`;
+    ctx.textAlign = item.align;
+    ctx.fillStyle = item.color;
+    
+    if (item.shadow) {
+        ctx.shadowColor = 'rgba(0,0,0,0.8)';
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+    }
+    
+    if (item.outline) {
+        ctx.strokeStyle = item.outlineColor;
+        ctx.lineWidth = 2;
+    }
+    
+    let x = width / 2;
+    if (item.align === 'left') x = 50;
+    if (item.align === 'right') x = width - 50;
+    
+    // Credits scroll animation
+    if (item.animation === 'creditsScroll') {
+        const startY = height + 100;
+        const endY = -500;
+        const currentY = startY - (progress * (startY - endY));
+        
+        lines.forEach((line, i) => {
+            const y = currentY + (i * item.size * item.lineHeight);
+            const cleanLine = line.replace(/<[^>]*>/g, '');
+            
+            if (item.outline) {
+                ctx.strokeText(cleanLine, x, y);
+            }
+            ctx.fillText(cleanLine, x, y);
+        });
+    } else {
+        // Other animations at center
+        const totalHeight = lines.length * item.size * item.lineHeight;
+        const startY = (height - totalHeight) / 2;
+        
+        lines.forEach((line, i) => {
+            const y = startY + (i * item.size * item.lineHeight);
+            const cleanLine = line.replace(/<[^>]*>/g, '');
+            
+            if (item.outline) {
+                ctx.strokeText(cleanLine, x, y);
+            }
+            ctx.fillText(cleanLine, x, y);
+        });
+    }
+    
+    ctx.restore();
+}
+
+function loadImage(src) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+    });
 }
