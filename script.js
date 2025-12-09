@@ -591,7 +591,6 @@ function initExportControls() {
 async function startExport() {
     const resolution = parseInt(document.getElementById('exportRes').value);
     const fps = parseInt(document.getElementById('exportFps').value);
-    const format = document.getElementById('exportFormat').value;
     const progress = document.getElementById('exportProgress');
     const exportBtn = document.getElementById('exportBtn');
     
@@ -616,20 +615,8 @@ async function startExport() {
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         
-        // Use MediaRecorder instead of FFmpeg
+        // Use MediaRecorder
         const stream = canvas.captureStream(fps);
-        
-        // Add audio if available
-        if (musicAudio && musicData) {
-            const audioCtx = new AudioContext();
-            const audioSource = audioCtx.createMediaElementSource(musicAudio);
-            const dest = audioCtx.createMediaStreamDestination();
-            audioSource.connect(dest);
-            audioSource.connect(audioCtx.destination);
-            
-            stream.addTrack(dest.stream.getAudioTracks()[0]);
-        }
-        
         const chunks = [];
         const mediaRecorder = new MediaRecorder(stream, {
             mimeType: 'video/webm;codecs=vp9',
