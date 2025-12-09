@@ -5,7 +5,6 @@ let bgImageData = null;
 let bgVideoData = null;
 let musicData = null;
 let musicAudio = null;
-let previewTimeline = null;
 let isPlaying = false;
 let startTime = 0;
 let currentTime = 0;
@@ -43,6 +42,7 @@ function initBackgroundControls() {
 
     bgType.addEventListener('change', () => {
         document.querySelectorAll('.bg-controls').forEach(el => el.classList.add('hidden'));
+        bgVideo.style.display = 'none';
         
         if (bgType.value === 'solid') {
             document.getElementById('solidControls').classList.remove('hidden');
@@ -114,14 +114,12 @@ function initBackgroundControls() {
     function updateSolidBackground() {
         previewWindow.style.background = bgColor.value;
         previewWindow.style.backgroundImage = 'none';
-        bgVideo.style.display = 'none';
     }
 
     function updateGradientBackground() {
         const grad = `linear-gradient(${gradDir.value}, ${gradColor1.value}, ${gradColor2.value})`;
         previewWindow.style.background = grad;
         previewWindow.style.backgroundImage = grad;
-        bgVideo.style.display = 'none';
     }
 
     function updateImageBackground() {
@@ -131,7 +129,6 @@ function initBackgroundControls() {
             previewWindow.style.backgroundPosition = 'center';
             previewWindow.style.backgroundRepeat = 'no-repeat';
             previewWindow.style.opacity = bgImageOpacity.value;
-            bgVideo.style.display = 'none';
         }
     }
 
@@ -142,7 +139,6 @@ function initBackgroundControls() {
             previewWindow.style.backgroundPosition = 'center';
             previewWindow.style.backgroundRepeat = 'no-repeat';
             previewWindow.style.opacity = bgUrlOpacity.value;
-            bgVideo.style.display = 'none';
         }
     }
 
@@ -159,6 +155,11 @@ function initTextControls() {
     const closeModalBtn = document.getElementById('closeModalBtn');
     const saveTextBtn = document.getElementById('saveTextBtn');
     const deleteTextBtn = document.getElementById('deleteTextBtn');
+    const autoFillBtn = document.getElementById('autoFillBtn');
+    const boldBtn = document.getElementById('boldBtn');
+    const italicBtn = document.getElementById('italicBtn');
+    const colorBtn = document.getElementById('colorBtn');
+    const textColorPicker = document.getElementById('textColorPicker');
 
     addTextBtn.addEventListener('click', () => {
         const newItem = {
@@ -172,14 +173,35 @@ function initTextControls() {
             lineHeight: 1.5,
             align: 'center',
             shadow: false,
+            outline: false,
+            outlineColor: '#000000',
             animation: 'creditsScroll',
-            duration: 3,
+            duration: 10,
             delay: 0,
             easing: 'none'
         };
         textItems.push(newItem);
         renderTextList();
         openTextEditor(newItem.id);
+    });
+
+    autoFillBtn.addEventListener('click', () => {
+        const exampleText = `<b>2025 Summary</b>
+
+Meals eaten: 1096
+Money saved: $9112
+Average daily sleep: 5h
+Average daily screentime: 10h
+New friends made: 20
+Girls talked to: 1 (mom)`;
+        document.getElementById('editTextContent').value = exampleText;
+    });
+
+    boldBtn.addEventListener('click', () => wrapSelection('<b>', '</b>'));
+    italicBtn.addEventListener('click', () => wrapSelection('<i>', '</i>'));
+    colorBtn.addEventListener('click', () => {
+        const color = textColorPicker.value;
+        wrapSelection(`<span style="color:${color}">`, '</span>');
     });
 
     closeModalBtn.addEventListener('click', () => {
@@ -201,6 +223,22 @@ function initTextControls() {
     });
 }
 
+function wrapSelection(start, end) {
+    const textarea = document.getElementById('editTextContent');
+    const selStart = textarea.selectionStart;
+    const selEnd = textarea.selectionEnd;
+    const text = textarea.value;
+    const selected = text.substring(selStart, selEnd);
+    
+    if (selected) {
+        const newText = text.substring(0, selStart) + start + selected + end + text.substring(selEnd);
+        textarea.value = newText;
+        textarea.selectionStart = selStart + start.length;
+        textarea.selectionEnd = selEnd + start.length;
+    }
+    textarea.focus();
+}
+
 function renderTextList() {
     const textList = document.getElementById('textList');
     textList.innerHTML = '';
@@ -208,7 +246,8 @@ function renderTextList() {
     textItems.forEach(item => {
         const div = document.createElement('div');
         div.className = 'text-item';
-        div.innerHTML = `<div class="text-item-content">${item.content.substring(0, 30)}...</div>`;
+        const preview = item.content.replace(/<[^>]*>/g, '').substring(0, 30);
+        div.innerHTML = `<div class="text-item-content">${preview}...</div>`;
         div.addEventListener('click', () => openTextEditor(item.id));
         textList.appendChild(div);
     });
@@ -228,6 +267,8 @@ function openTextEditor(id) {
     document.getElementById('editLineHeight').value = item.lineHeight;
     document.getElementById('editAlign').value = item.align;
     document.getElementById('editShadow').checked = item.shadow;
+    document.getElementById('editOutline').checked = item.outline || false;
+    document.getElementById('editOutlineColor').value = item.outlineColor || '#000000';
     document.getElementById('editAnimation').value = item.animation;
     document.getElementById('editDuration').value = item.duration;
     document.getElementById('editDelay').value = item.delay;
@@ -249,6 +290,8 @@ function saveCurrentText() {
     item.lineHeight = parseFloat(document.getElementById('editLineHeight').value);
     item.align = document.getElementById('editAlign').value;
     item.shadow = document.getElementById('editShadow').checked;
+    item.outline = document.getElementById('editOutline').checked;
+    item.outlineColor = document.getElementById('editOutlineColor').value;
     item.animation = document.getElementById('editAnimation').value;
     item.duration = parseFloat(document.getElementById('editDuration').value);
     item.delay = parseFloat(document.getElementById('editDelay').value);
@@ -345,6 +388,13 @@ function animatePreview() {
     animationFrame = requestAnimationFrame(animatePreview);
 }
 
+function parseStyledText(text) {
+    return text
+        .replace(/<b>(.*?)<\/b>/g, '<strong>$1</strong>')
+        .replace(/<i>(.*?)<\/i>/g, '<em>$1</em>')
+        .replace(/\n/g, '<br>');
+}
+
 function updatePreview() {
     const container = document.getElementById('textContainer');
     container.innerHTML = '';
@@ -352,7 +402,7 @@ function updatePreview() {
     textItems.forEach(item => {
         const textEl = document.createElement('div');
         textEl.className = 'text-element';
-        textEl.textContent = item.content;
+        textEl.innerHTML = parseStyledText(item.content);
         textEl.style.fontFamily = item.font;
         textEl.style.fontSize = item.size + 'px';
         textEl.style.fontWeight = item.weight;
@@ -360,14 +410,18 @@ function updatePreview() {
         textEl.style.letterSpacing = item.letterSpacing + 'px';
         textEl.style.lineHeight = item.lineHeight;
         textEl.style.textAlign = item.align;
+        textEl.style.whiteSpace = 'pre-wrap';
         
         if (item.shadow) {
             textEl.style.textShadow = '2px 2px 4px rgba(0,0,0,0.8)';
         }
         
-        container.appendChild(textEl);
+        if (item.outline) {
+            textEl.style.webkitTextStroke = `2px ${item.outlineColor}`;
+            textEl.style.paintOrder = 'stroke fill';
+        }
         
-        // Apply animation
+        container.appendChild(textEl);
         applyAnimation(textEl, item);
     });
 }
@@ -385,21 +439,27 @@ function applyAnimation(element, item) {
     element.style.letterSpacing = item.letterSpacing + 'px';
     element.style.lineHeight = item.lineHeight;
     element.style.textAlign = item.align;
+    element.style.whiteSpace = 'pre-wrap';
     
     if (item.shadow) {
         element.style.textShadow = '2px 2px 4px rgba(0,0,0,0.8)';
     }
     
+    if (item.outline) {
+        element.style.webkitTextStroke = `2px ${item.outlineColor}`;
+        element.style.paintOrder = 'stroke fill';
+    }
+    
     switch(item.animation) {
         case 'creditsScroll':
             gsap.set(element, { 
-                bottom: '-100px',
+                bottom: '-20%',
                 left: '50%',
                 xPercent: -50,
                 opacity: 1
             });
             gsap.to(element, {
-                bottom: '100%',
+                bottom: '110%',
                 duration: duration,
                 delay: delay,
                 ease: easing || 'none'
@@ -484,14 +544,6 @@ function applyAnimation(element, item) {
                 yPercent: -50,
                 opacity: 1
             });
-            const text = element.textContent;
-            element.textContent = '';
-            const chars = text.split('');
-            chars.forEach((char, i) => {
-                setTimeout(() => {
-                    element.textContent += char;
-                }, (delay * 1000) + (i * (duration * 1000 / chars.length)));
-            });
             break;
             
         case 'zoomIn':
@@ -537,170 +589,5 @@ function initExportControls() {
 }
 
 async function startExport() {
-    const resolution = parseInt(document.getElementById('exportRes').value);
-    const fps = parseInt(document.getElementById('exportFps').value);
-    const format = document.getElementById('exportFormat').value;
-    const progress = document.getElementById('exportProgress');
-    
-    progress.textContent = 'Loading FFmpeg...';
-    
-    try {
-        const { FFmpeg } = FFmpegWASM;
-        const { fetchFile, toBlobURL } = FFmpegUtil;
-        const ffmpeg = new FFmpeg();
-        
-        const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
-        await ffmpeg.load({
-            coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-            wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-        });
-        
-        progress.textContent = 'Rendering frames...';
-        
-        // Calculate total duration
-        let maxTime = 0;
-        textItems.forEach(item => {
-            const endTime = item.delay + item.duration;
-            if (endTime > maxTime) maxTime = endTime;
-        });
-        
-        const totalFrames = Math.ceil(maxTime * fps);
-        const canvas = document.createElement('canvas');
-        canvas.width = resolution * (16/9);
-        canvas.height = resolution;
-        const ctx = canvas.getContext('2d');
-        
-        // Render frames
-        for (let i = 0; i < totalFrames; i++) {
-            const time = i / fps;
-            await renderFrame(ctx, canvas, time);
-            
-            const blob = await new Promise(resolve => canvas.toBlob(resolve));
-            const buffer = await blob.arrayBuffer();
-            await ffmpeg.writeFile(`frame${i.toString().padStart(5, '0')}.png`, new Uint8Array(buffer));
-            
-            progress.textContent = `Rendering: ${Math.round((i / totalFrames) * 100)}%`;
-        }
-        
-        progress.textContent = 'Encoding video...';
-        
-        // Add music if available
-        if (musicData && format === 'mp4') {
-            await ffmpeg.writeFile('audio.mp3', await fetchFile(musicData));
-            await ffmpeg.exec([
-                '-framerate', fps.toString(),
-                '-i', 'frame%05d.png',
-                '-i', 'audio.mp3',
-                '-c:v', 'libx264',
-                '-pix_fmt', 'yuv420p',
-                '-c:a', 'aac',
-                '-shortest',
-                'output.mp4'
-            ]);
-        } else if (format === 'mp4') {
-            await ffmpeg.exec([
-                '-framerate', fps.toString(),
-                '-i', 'frame%05d.png',
-                '-c:v', 'libx264',
-                '-pix_fmt', 'yuv420p',
-                'output.mp4'
-            ]);
-        } else {
-            await ffmpeg.exec([
-                '-framerate', fps.toString(),
-                '-i', 'frame%05d.png',
-                'output.gif'
-            ]);
-        }
-        
-        const data = await ffmpeg.readFile(format === 'mp4' ? 'output.mp4' : 'output.gif');
-        const url = URL.createObjectURL(new Blob([data.buffer], { 
-            type: format === 'mp4' ? 'video/mp4' : 'image/gif' 
-        }));
-        
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `credits.${format}`;
-        a.click();
-        
-        progress.textContent = 'Export complete!';
-    } catch (error) {
-        progress.textContent = 'Export failed: ' + error.message;
-        console.error(error);
-    }
-}
-
-async function renderFrame(ctx, canvas, time) {
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Render background
-    const bgType = document.getElementById('bgType').value;
-    if (bgType === 'solid') {
-        ctx.fillStyle = document.getElementById('bgColor').value;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-    } else if (bgType === 'gradient') {
-        const color1 = document.getElementById('gradColor1').value;
-        const color2 = document.getElementById('gradColor2').value;
-        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        gradient.addColorStop(0, color1);
-        gradient.addColorStop(1, color2);
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-    } else if (bgType === 'image' && bgImageData) {
-        const img = await loadImage(bgImageData);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    }
-    
-    // Render text
-    textItems.forEach(item => {
-        if (time >= item.delay && time <= item.delay + item.duration) {
-            renderTextOnCanvas(ctx, canvas, item, time);
-        }
-    });
-}
-
-function loadImage(src) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = reject;
-        img.src = src;
-    });
-}
-
-function renderTextOnCanvas(ctx, canvas, item, time) {
-    const progress = (time - item.delay) / item.duration;
-    
-    ctx.save();
-    ctx.font = `${item.weight} ${item.size}px ${item.font}`;
-    ctx.fillStyle = item.color;
-    ctx.textAlign = item.align;
-    
-    if (item.shadow) {
-        ctx.shadowColor = 'rgba(0,0,0,0.8)';
-        ctx.shadowBlur = 4;
-        ctx.shadowOffsetX = 2;
-        ctx.shadowOffsetY = 2;
-    }
-    
-    const x = canvas.width / 2;
-    let y = canvas.height / 2;
-    
-    switch(item.animation) {
-        case 'creditsScroll':
-            y = canvas.height - (progress * (canvas.height + 100)) + 100;
-            break;
-        case 'fadeIn':
-            ctx.globalAlpha = progress;
-            break;
-        case 'zoomIn':
-            ctx.translate(x, y);
-            ctx.scale(progress, progress);
-            ctx.translate(-x, -y);
-            break;
-    }
-    
-    ctx.fillText(item.content, x, y);
-    ctx.restore();
+    alert('Export feature requires FFmpeg.wasm setup. For now, use screen recording software to capture the preview.');
 }
