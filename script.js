@@ -606,8 +606,19 @@ async function startExport() {
         });
         
         const totalDuration = maxEndTime;
-        const width = resolution === 720 ? 1280 : 1920;
-        const height = resolution;
+        let width, height;
+        
+        if (resolution === 'shorts' || resolution === 'instagram') {
+            // 9:16 aspect ratio for vertical video
+            width = 1080;
+            height = 1920;
+        } else if (resolution === '720') {
+            width = 1280;
+            height = 720;
+        } else {
+            width = 1920;
+            height = 1080;
+        }
         
         // Create canvas
         const canvas = document.createElement('canvas');
