@@ -596,33 +596,10 @@ async function startExport() {
     const exportBtn = document.getElementById('exportBtn');
     
     exportBtn.disabled = true;
-    progress.textContent = 'Loading FFmpeg...';
+    progress.textContent = 'Preparing export...';
     
     try {
-        // Load FFmpeg
-       // Load FFmpeg with proper CORS-friendly URLs
-        const { FFmpeg } = window.FFmpegWASM;
-        const { toBlobURL } = window.FFmpegUtil;
-        const ffmpeg = new FFmpeg();
-        
-        ffmpeg.on('log', ({ message }) => {
-            console.log(message);
-        });
-        
-        ffmpeg.on('progress', ({ progress: prog }) => {
-            if (prog > 0 && prog < 1) {
-                progress.textContent = `Encoding: ${Math.round(prog * 100)}%`;
-            }
-        });
-        
-        const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd';
-        await ffmpeg.load({
-            coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-            wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm')
-        });
-        progress.textContent = 'Preparing frames...';
-        
-        // Calculate duration - text must fully exit screen
+        // Calculate duration
         let maxEndTime = 0;
         textItems.forEach(item => {
             const endTime = item.delay + item.duration;
@@ -632,9 +609,6 @@ async function startExport() {
         const totalDuration = maxEndTime;
         const width = resolution === 720 ? 1280 : 1920;
         const height = resolution;
-        const totalFrames = Math.ceil(totalDuration * fps);
-        
-        progress.textContent = `Rendering ${totalFrames} frames...`;
         
         // Create canvas
         const canvas = document.createElement('canvas');
@@ -642,84 +616,61 @@ async function startExport() {
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         
-        // Render all frames
-        for (let i = 0; i < totalFrames; i++) {
-            const time = i / fps;
+        // Use MediaRecorder instead of FFmpeg
+        const stream = canvas.captureStream(fps);
+        
+        // Add audio if available
+        if (musicAudio && musicData) {
+            const audioCtx = new AudioContext();
+            const audioSource = audioCtx.createMediaElementSource(musicAudio);
+            const dest = audioCtx.createMediaStreamDestination();
+            audioSource.connect(dest);
+            audioSource.connect(audioCtx.destination);
+            
+            stream.addTrack(dest.stream.getAudioTracks()[0]);
+        }
+        
+        const chunks = [];
+        const mediaRecorder = new MediaRecorder(stream, {
+            mimeType: 'video/webm;codecs=vp9',
+            videoBitsPerSecond: 5000000
+        });
+        
+        mediaRecorder.ondataavailable = e => {
+            if (e.data.size > 0) chunks.push(e.data);
+        };
+        
+        mediaRecorder.onstop = () => {
+            const blob = new Blob(chunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'credits.webm';
+            a.click();
+            URL.revokeObjectURL(url);
+            progress.textContent = 'Export complete!';
+            exportBtn.disabled = false;
+        };
+        
+        mediaRecorder.start();
+        
+        // Render animation
+        const frameInterval = 1000 / fps;
+        let currentFrame = 0;
+        const totalFrames = Math.ceil(totalDuration * fps);
+        
+        const renderLoop = setInterval(async () => {
+            const time = currentFrame / fps;
             await renderFrameToCanvas(ctx, canvas, time, width, height);
             
-            // Convert to PNG
-            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-            const arrayBuffer = await blob.arrayBuffer();
-            const uint8Array = new Uint8Array(arrayBuffer);
+            currentFrame++;
+            progress.textContent = `Recording: ${Math.round((currentFrame / totalFrames) * 100)}%`;
             
-            // Write to FFmpeg
-            const filename = `frame${String(i).padStart(6, '0')}.png`;
-            await ffmpeg.writeFile(filename, uint8Array);
-            
-            if (i % 10 === 0) {
-                progress.textContent = `Rendering: ${Math.round((i / totalFrames) * 100)}%`;
+            if (currentFrame >= totalFrames) {
+                clearInterval(renderLoop);
+                mediaRecorder.stop();
             }
-        }
-        
-        progress.textContent = 'Encoding video...';
-        
-        // Encode video
-        if (format === 'mp4') {
-            if (musicData) {
-                // Convert music to proper format
-                const musicResponse = await fetch(musicData);
-                const musicBlob = await musicResponse.blob();
-                const musicBuffer = await musicBlob.arrayBuffer();
-                await ffmpeg.writeFile('audio.mp3', new Uint8Array(musicBuffer));
-                
-                const musicStart = parseFloat(document.getElementById('musicStart').value) || 0;
-                
-                await ffmpeg.exec([
-                    '-framerate', String(fps),
-                    '-i', 'frame%06d.png',
-                    '-ss', String(musicStart),
-                    '-i', 'audio.mp3',
-                    '-c:v', 'libx264',
-                    '-preset', 'medium',
-                    '-crf', '23',
-                    '-pix_fmt', 'yuv420p',
-                    '-c:a', 'aac',
-                    '-b:a', '192k',
-                    '-shortest',
-                    '-movflags', '+faststart',
-                    'output.mp4'
-                ]);
-            } else {
-                await ffmpeg.exec([
-                    '-framerate', String(fps),
-                    '-i', 'frame%06d.png',
-                    '-c:v', 'libx264',
-                    '-preset', 'medium',
-                    '-crf', '23',
-                    '-pix_fmt', 'yuv420p',
-                    '-movflags', '+faststart',
-                    'output.mp4'
-                ]);
-            }
-            
-            const data = await ffmpeg.readFile('output.mp4');
-            downloadFile(data, 'credits.mp4', 'video/mp4');
-        } else {
-            // GIF export
-            await ffmpeg.exec([
-                '-framerate', String(fps),
-                '-i', 'frame%06d.png',
-                '-vf', 'fps=15,scale=' + width + ':-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse',
-                '-loop', '0',
-                'output.gif'
-            ]);
-            
-            const data = await ffmpeg.readFile('output.gif');
-            downloadFile(data, 'credits.gif', 'image/gif');
-        }
-        
-        progress.textContent = 'Export complete!';
-        exportBtn.disabled = false;
+        }, frameInterval);
         
     } catch (error) {
         console.error('Export error:', error);
@@ -727,7 +678,6 @@ async function startExport() {
         exportBtn.disabled = false;
     }
 }
-
 function downloadFile(data, filename, mimeType) {
     const blob = new Blob([data.buffer], { type: mimeType });
     const url = URL.createObjectURL(blob);
