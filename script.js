@@ -600,7 +600,9 @@ async function startExport() {
     
     try {
         // Load FFmpeg
+       // Load FFmpeg with proper CORS-friendly URLs
         const { FFmpeg } = window.FFmpegWASM;
+        const { toBlobURL } = window.FFmpegUtil;
         const ffmpeg = new FFmpeg();
         
         ffmpeg.on('log', ({ message }) => {
@@ -613,7 +615,11 @@ async function startExport() {
             }
         });
         
-        await ffmpeg.load();
+        const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd';
+        await ffmpeg.load({
+            coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+            wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm')
+        });
         progress.textContent = 'Preparing frames...';
         
         // Calculate duration - text must fully exit screen
