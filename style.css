@@ -290,3 +290,10 @@ body {
     font-size: 12px;
     color: #aaa;
 }
+
+.format-btn {
+    padding: 5px 10px !important;
+    margin: 2px !important;
+    width: auto !important;
+    display: inline-block !important;
+}
