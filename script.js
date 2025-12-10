@@ -587,6 +587,7 @@ function initExportControls() {
     const exportBtn = document.getElementById('exportBtn');
     exportBtn.addEventListener('click', startExport);
 }
+
 async function startExport() {
     const resolutionVal = document.getElementById('exportRes').value;
     const fps = parseInt(document.getElementById('exportFps').value);
@@ -597,123 +598,86 @@ async function startExport() {
     progress.textContent = 'Preparing export...';
     
     try {
-        // Calculate duration - add 1 second buffer
+        // Calculate duration
         let maxEndTime = 0;
         textItems.forEach(item => {
             const endTime = item.delay + item.duration;
             if (endTime > maxEndTime) maxEndTime = endTime;
         });
         
-        const totalDuration = Math.max(maxEndTime + 1, 5); // Minimum 5 seconds
+        const totalDuration = Math.max(maxEndTime + 1, 5);
         let width, height;
         
-        // Set proper dimensions based on resolution
         if (resolutionVal === 'shorts' || resolutionVal === 'instagram') {
             width = 1080;
             height = 1920;
         } else if (resolutionVal === '720') {
             width = 1280;
             height = 720;
-        } else { // 1080p
+        } else {
             width = 1920;
             height = 1080;
         }
         
-        // Create offscreen canvas for better performance
         const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
-        const ctx = canvas.getContext('2d', { 
-            alpha: false
-        });
+        const ctx = canvas.getContext('2d', { alpha: false });
         
-        // Pre-load background image if needed
+        // Pre-load background
         let bgImage = null;
         const bgType = document.getElementById('bgType').value;
         if ((bgType === 'image' || bgType === 'url') && bgImageData) {
             bgImage = await loadImage(bgImageData);
         }
         
-        // Calculate total frames
         const totalFrames = Math.ceil(totalDuration * fps);
+        const frameDuration = 1000 / fps;
         
-        // Create MediaRecorder with proper FPS
-        const stream = canvas.captureStream(fps); // Set target FPS
+        // Create stream and recorder
+        const stream = canvas.captureStream(fps);
         const chunks = [];
         
-        // Try different codecs for best quality
-        let mimeType = 'video/webm;codecs=vp9';
-        if (!MediaRecorder.isTypeSupported(mimeType)) {
-            mimeType = 'video/webm;codecs=vp8';
-        }
-        if (!MediaRecorder.isTypeSupported(mimeType)) {
-            mimeType = 'video/webm';
-        }
-        
         const mediaRecorder = new MediaRecorder(stream, {
-            mimeType: mimeType,
-            videoBitsPerSecond: 8000000 // 8 Mbps
+            mimeType: 'video/webm',
+            videoBitsPerSecond: 5000000
         });
         
         mediaRecorder.ondataavailable = e => {
-            if (e.data.size > 0) {
-                chunks.push(e.data);
-            }
+            if (e.data.size > 0) chunks.push(e.data);
         };
         
-        mediaRecorder.onstop = () => {
-            if (chunks.length === 0) {
-                progress.textContent = 'Export failed: No video data captured';
-                exportBtn.disabled = false;
-                return;
-            }
-            
-            const blob = new Blob(chunks, { type: 'video/webm' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `credits-${width}x${height}-${fps}fps.webm`;
-            a.click();
-            
-            setTimeout(() => URL.revokeObjectURL(url), 100);
-            
-            progress.textContent = 'Export complete! Video downloaded.';
-            exportBtn.disabled = false;
-        };
+        const done = new Promise(resolve => {
+            mediaRecorder.onstop = resolve;
+        });
         
-        // Start recording
-        mediaRecorder.start();
+        mediaRecorder.start(100);
         
-        // Wait a moment for recorder to initialize
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Render frames in real-time
+        const startRenderTime = performance.now();
         
-        // Render frames with proper timing
-        const frameDelay = 1000 / fps;
-        let currentFrame = 0;
-        
-        const renderNextFrame = async () => {
-            if (currentFrame >= totalFrames) {
-                // Wait for final frames to be captured
-                await new Promise(resolve => setTimeout(resolve, 500));
-                mediaRecorder.stop();
-                return;
-            }
+        for (let i = 0; i < totalFrames; i++) {
+            const targetTime = startRenderTime + (i * frameDuration);
+            const time = i / fps;
             
-            const time = currentFrame / fps;
-            
-            // Render frame to canvas
             await renderFrameToCanvas(ctx, canvas, time, width, height, bgImage);
             
-            currentFrame++;
-            const progressPercent = Math.round((currentFrame / totalFrames) * 100);
-            progress.textContent = `Rendering: ${progressPercent}% (${currentFrame}/${totalFrames} frames, ${time.toFixed(1)}s)`;
+            progress.textContent = `Recording: ${Math.round((i / totalFrames) * 100)}% (${i}/${totalFrames})`;
             
-            // Wait appropriate time before next frame
-            setTimeout(renderNextFrame, frameDelay);
-        };
+            // Wait for real-time sync
+            const now = performance.now();
+            const delay = Math.max(0, targetTime - now);
+            await new Promise(r => setTimeout(r, delay));
+        }
         
-        // Start rendering
-        renderNextFrame();
+        mediaRecorder.stop();
+        await done;
+        
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        downloadBlob(blob, `credits-${width}x${height}-${fps}fps.webm`);
+        
+        progress.textContent = 'Export complete!';
+        exportBtn.disabled = false;
         
     } catch (error) {
         console.error('Export error:', error);
@@ -721,21 +685,11 @@ async function startExport() {
         exportBtn.disabled = false;
     }
 }
-function downloadFile(data, filename, mimeType) {
-    const blob = new Blob([data.buffer], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
 
-async function renderFrameToCanvas(ctx, canvas, time, width, height) {
+async function renderFrameToCanvas(ctx, canvas, time, width, height, bgImage = null) {
     // Clear
-    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, width, height);
     
     // Background
     const bgType = document.getElementById('bgType').value;
@@ -746,20 +700,32 @@ async function renderFrameToCanvas(ctx, canvas, time, width, height) {
     } else if (bgType === 'gradient') {
         const c1 = document.getElementById('gradColor1').value;
         const c2 = document.getElementById('gradColor2').value;
-        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        const dir = document.getElementById('gradDir').value;
+        
+        let gradient;
+        if (dir === 'to bottom' || dir === '180deg') {
+            gradient = ctx.createLinearGradient(0, 0, 0, height);
+        } else if (dir === 'to right' || dir === '90deg') {
+            gradient = ctx.createLinearGradient(0, 0, width, 0);
+        } else if (dir === 'to top' || dir === '0deg') {
+            gradient = ctx.createLinearGradient(0, height, 0, 0);
+        } else {
+            gradient = ctx.createLinearGradient(width, 0, 0, 0);
+        }
+        
         gradient.addColorStop(0, c1);
         gradient.addColorStop(1, c2);
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, width, height);
-    } else if (bgType === 'image' && bgImageData) {
-        const img = await loadImage(bgImageData);
-        ctx.drawImage(img, 0, 0, width, height);
-    } else if (bgType === 'url' && bgImageData) {
-        const img = await loadImage(bgImageData);
-        ctx.drawImage(img, 0, 0, width, height);
+    } else if ((bgType === 'image' || bgType === 'url') && bgImage) {
+        const fit = bgType === 'image' ? 
+            document.getElementById('bgImageFit').value : 
+            document.getElementById('bgUrlFit').value;
+        
+        drawImageWithFit(ctx, bgImage, width, height, fit);
     }
     
-    // Render text items
+    // Render text
     textItems.forEach(item => {
         const startTime = item.delay;
         const endTime = item.delay + item.duration;
@@ -771,14 +737,55 @@ async function renderFrameToCanvas(ctx, canvas, time, width, height) {
     });
 }
 
+function drawImageWithFit(ctx, img, canvasWidth, canvasHeight, fit) {
+    const imgAspect = img.width / img.height;
+    const canvasAspect = canvasWidth / canvasHeight;
+    
+    let drawWidth, drawHeight, offsetX, offsetY;
+    
+    if (fit === 'cover') {
+        if (imgAspect > canvasAspect) {
+            drawHeight = canvasHeight;
+            drawWidth = drawHeight * imgAspect;
+            offsetX = (canvasWidth - drawWidth) / 2;
+            offsetY = 0;
+        } else {
+            drawWidth = canvasWidth;
+            drawHeight = drawWidth / imgAspect;
+            offsetX = 0;
+            offsetY = (canvasHeight - drawHeight) / 2;
+        }
+    } else if (fit === 'contain') {
+        if (imgAspect > canvasAspect) {
+            drawWidth = canvasWidth;
+            drawHeight = drawWidth / imgAspect;
+            offsetX = 0;
+            offsetY = (canvasHeight - drawHeight) / 2;
+        } else {
+            drawHeight = canvasHeight;
+            drawWidth = drawHeight * imgAspect;
+            offsetX = (canvasWidth - drawWidth) / 2;
+            offsetY = 0;
+        }
+    } else {
+        drawWidth = canvasWidth;
+        drawHeight = canvasHeight;
+        offsetX = 0;
+        offsetY = 0;
+    }
+    
+    ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+}
+
 function renderTextItem(ctx, item, progress, width, height) {
     ctx.save();
     
-    // Parse styled text
     const lines = item.content.split('\n');
+    const fontWeight = item.weight;
+    const fontSize = item.size;
+    const fontFamily = item.font;
     
-    ctx.font = `${item.weight} ${item.size}px ${item.font}`;
-    ctx.textAlign = item.align;
+    ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
     ctx.fillStyle = item.color;
     
     if (item.shadow) {
@@ -790,45 +797,187 @@ function renderTextItem(ctx, item, progress, width, height) {
     
     if (item.outline) {
         ctx.strokeStyle = item.outlineColor;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 4;
     }
     
-    let x = width / 2;
-    if (item.align === 'left') x = 50;
-    if (item.align === 'right') x = width - 50;
+    let baseX, baseY;
+    let opacity = 1;
+    let scale = 1;
     
-    // Credits scroll animation
-    if (item.animation === 'creditsScroll') {
-        const startY = height + 100;
-        const endY = -500;
-        const currentY = startY - (progress * (startY - endY));
-        
-        lines.forEach((line, i) => {
-            const y = currentY + (i * item.size * item.lineHeight);
-            const cleanLine = line.replace(/<[^>]*>/g, '');
+    switch(item.animation) {
+        case 'creditsScroll':
+            const scrollStart = height + 100;
+            const scrollEnd = -500;
+            baseY = scrollStart - (progress * (scrollStart - scrollEnd));
+            baseX = width / 2;
+            ctx.textAlign = 'center';
+            break;
             
-            if (item.outline) {
-                ctx.strokeText(cleanLine, x, y);
-            }
-            ctx.fillText(cleanLine, x, y);
-        });
-    } else {
-        // Other animations at center
-        const totalHeight = lines.length * item.size * item.lineHeight;
-        const startY = (height - totalHeight) / 2;
-        
-        lines.forEach((line, i) => {
-            const y = startY + (i * item.size * item.lineHeight);
-            const cleanLine = line.replace(/<[^>]*>/g, '');
+        case 'fadeIn':
+            baseX = width / 2;
+            baseY = height / 2;
+            opacity = progress;
+            ctx.textAlign = 'center';
+            break;
             
-            if (item.outline) {
-                ctx.strokeText(cleanLine, x, y);
-            }
-            ctx.fillText(cleanLine, x, y);
-        });
+        case 'fadeInOut':
+            baseX = width / 2;
+            baseY = height / 2;
+            opacity = progress < 0.5 ? progress * 2 : (1 - progress) * 2;
+            ctx.textAlign = 'center';
+            break;
+            
+        case 'slideLeft':
+            baseX = width * (1 - progress);
+            baseY = height / 2;
+            ctx.textAlign = 'left';
+            break;
+            
+        case 'slideRight':
+            baseX = width * progress;
+            baseY = height / 2;
+            ctx.textAlign = 'right';
+            break;
+            
+        case 'zoomIn':
+            baseX = width / 2;
+            baseY = height / 2;
+            scale = progress;
+            ctx.textAlign = 'center';
+            break;
+            
+        case 'zoomOut':
+            baseX = width / 2;
+            baseY = height / 2;
+            scale = 3 - (progress * 2);
+            ctx.textAlign = 'center';
+            break;
+            
+        default:
+            baseX = width / 2;
+            baseY = height / 2;
+            ctx.textAlign = item.align;
     }
+    
+    ctx.globalAlpha = opacity;
+    
+    if (scale !== 1) {
+        ctx.translate(baseX, baseY);
+        ctx.scale(scale, scale);
+        ctx.translate(-baseX, -baseY);
+    }
+    
+    const lineHeight = fontSize * item.lineHeight;
+    const totalHeight = lines.length * lineHeight;
+    
+    if (item.animation !== 'creditsScroll') {
+        baseY = baseY - (totalHeight / 2) + (fontSize / 2);
+    }
+    
+    lines.forEach((line, i) => {
+        const y = baseY + (i * lineHeight);
+        const segments = parseLineSegments(line);
+        
+        let currentX = baseX;
+        
+        if (ctx.textAlign === 'center') {
+            const totalWidth = segments.reduce((sum, seg) => {
+                ctx.font = `${seg.bold ? 'bold' : fontWeight} ${seg.italic ? 'italic' : ''} ${fontSize}px ${fontFamily}`.trim();
+                return sum + ctx.measureText(seg.text).width;
+            }, 0);
+            currentX = baseX - (totalWidth / 2);
+        } else if (ctx.textAlign === 'right') {
+            const totalWidth = segments.reduce((sum, seg) => {
+                ctx.font = `${seg.bold ? 'bold' : fontWeight} ${seg.italic ? 'italic' : ''} ${fontSize}px ${fontFamily}`.trim();
+                return sum + ctx.measureText(seg.text).width;
+            }, 0);
+            currentX = baseX - totalWidth;
+        }
+        
+        segments.forEach(seg => {
+            ctx.font = `${seg.bold ? 'bold' : fontWeight} ${seg.italic ? 'italic' : ''} ${fontSize}px ${fontFamily}`.trim();
+            ctx.fillStyle = seg.color || item.color;
+            
+            if (item.outline) {
+                ctx.strokeText(seg.text, currentX, y);
+            }
+            ctx.fillText(seg.text, currentX, y);
+            
+            currentX += ctx.measureText(seg.text).width;
+        });
+    });
     
     ctx.restore();
+}
+
+function parseLineSegments(line) {
+    const segments = [];
+    let currentText = '';
+    let bold = false;
+    let italic = false;
+    let color = null;
+    let i = 0;
+    
+    while (i < line.length) {
+        if (line.substr(i, 3) === '<b>') {
+            if (currentText) {
+                segments.push({ text: currentText, bold, italic, color });
+                currentText = '';
+            }
+            bold = true;
+            i += 3;
+        } else if (line.substr(i, 4) === '</b>') {
+            if (currentText) {
+                segments.push({ text: currentText, bold, italic, color });
+                currentText = '';
+            }
+            bold = false;
+            i += 4;
+        } else if (line.substr(i, 3) === '<i>') {
+            if (currentText) {
+                segments.push({ text: currentText, bold, italic, color });
+                currentText = '';
+            }
+            italic = true;
+            i += 3;
+        } else if (line.substr(i, 4) === '</i>') {
+            if (currentText) {
+                segments.push({ text: currentText, bold, italic, color });
+                currentText = '';
+            }
+            italic = false;
+            i += 4;
+        } else if (line.substr(i, 18) === '<span style="color') {
+            if (currentText) {
+                segments.push({ text: currentText, bold, italic, color });
+                currentText = '';
+            }
+            const colorMatch = line.substr(i).match(/color:([^"]+)"/);
+            if (colorMatch) {
+                color = colorMatch[1];
+                i = line.indexOf('>', i) + 1;
+            } else {
+                currentText += line[i];
+                i++;
+            }
+        } else if (line.substr(i, 7) === '</span>') {
+            if (currentText) {
+                segments.push({ text: currentText, bold, italic, color });
+                currentText = '';
+            }
+            color = null;
+            i += 7;
+        } else {
+            currentText += line[i];
+            i++;
+        }
+    }
+    
+    if (currentText) {
+        segments.push({ text: currentText, bold, italic, color });
+    }
+    
+    return segments.length ? segments : [{ text: line, bold: false, italic: false, color: null }];
 }
 
 function loadImage(src) {
@@ -839,4 +988,13 @@ function loadImage(src) {
         img.onerror = reject;
         img.src = src;
     });
+}
+
+function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 100);
 }
