@@ -586,11 +586,26 @@ function applyAnimation(element, item) {
 function initExportControls() {
     const exportBtn = document.getElementById('exportBtn');
     exportBtn.addEventListener('click', startExport);
+    
+    // NEW: Listen for resolution changes
+    const exportRes = document.getElementById('exportRes');
+    exportRes.addEventListener('change', updatePreviewAspectRatio);
+    
+    // Initialize aspect ratio on load
+    updatePreviewAspectRatio();
 }
-// ============================================
-// REPLACE YOUR ENTIRE startExport() FUNCTION WITH THIS
-// TESTED AND WORKING VERSION
-// ============================================
+function updatePreviewAspectRatio() {
+    const resolutionVal = document.getElementById('exportRes').value;
+    const previewWindow = document.getElementById('previewWindow');
+    
+    previewWindow.classList.remove('aspect-16-9', 'aspect-9-16', 'aspect-4-3');
+    
+    if (resolutionVal === 'shorts' || resolutionVal === 'instagram') {
+        previewWindow.classList.add('aspect-9-16');
+    } else if (resolutionVal === '720' || resolutionVal === '1080') {
+        previewWindow.classList.add('aspect-16-9');
+    }
+}
 
 async function startExport() {
     const resolutionVal = document.getElementById('exportRes').value;
