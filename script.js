@@ -589,7 +589,7 @@ function initExportControls() {
 }
 
 async function startExport() {
-    const resolution = parseInt(document.getElementById('exportRes').value);
+    const resolutionVal = document.getElementById('exportRes').value;
     const fps = parseInt(document.getElementById('exportFps').value);
     const progress = document.getElementById('exportProgress');
     const exportBtn = document.getElementById('exportBtn');
@@ -598,40 +598,64 @@ async function startExport() {
     progress.textContent = 'Preparing export...';
     
     try {
-        // Calculate duration
+        // Calculate duration - add 1 second buffer
         let maxEndTime = 0;
         textItems.forEach(item => {
             const endTime = item.delay + item.duration;
             if (endTime > maxEndTime) maxEndTime = endTime;
         });
         
-        const totalDuration = maxEndTime;
+        const totalDuration = Math.max(maxEndTime + 1, 5); // Minimum 5 seconds
         let width, height;
         
-        if (resolution === 'shorts' || resolution === 'instagram') {
-            // 9:16 aspect ratio for vertical video
+        // Set proper dimensions based on resolution
+        if (resolutionVal === 'shorts' || resolutionVal === 'instagram') {
             width = 1080;
             height = 1920;
-        } else if (resolution === '720') {
+        } else if (resolutionVal === '720') {
             width = 1280;
             height = 720;
-        } else {
+        } else { // 1080p
             width = 1920;
             height = 1080;
         }
         
-        // Create canvas
+        // Create offscreen canvas for better performance
         const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { 
+            alpha: false,
+            desynchronized: true 
+        });
         
-        // Use MediaRecorder
-        const stream = canvas.captureStream(fps);
+        // Pre-load background image if needed
+        let bgImage = null;
+        const bgType = document.getElementById('bgType').value;
+        if ((bgType === 'image' || bgType === 'url') && bgImageData) {
+            bgImage = await loadImage(bgImageData);
+        }
+        
+        // Calculate total frames
+        const totalFrames = Math.ceil(totalDuration * fps);
+        const frameDuration = 1000 / fps;
+        
+        // Create MediaRecorder with higher quality settings
+        const stream = canvas.captureStream(0); // Manual frame capture
         const chunks = [];
+        
+        // Try different codecs for best quality
+        let mimeType = 'video/webm;codecs=vp9';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = 'video/webm;codecs=vp8';
+        }
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = 'video/webm';
+        }
+        
         const mediaRecorder = new MediaRecorder(stream, {
-            mimeType: 'video/webm;codecs=vp9',
-            videoBitsPerSecond: 5000000
+            mimeType: mimeType,
+            videoBitsPerSecond: 10000000 // 10 Mbps for better quality
         });
         
         mediaRecorder.ondataavailable = e => {
@@ -643,32 +667,45 @@ async function startExport() {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'credits.webm';
+            a.download = `credits-${width}x${height}-${fps}fps.webm`;
             a.click();
             URL.revokeObjectURL(url);
-            progress.textContent = 'Export complete!';
+            progress.textContent = 'Export complete! Video downloaded.';
             exportBtn.disabled = false;
         };
         
         mediaRecorder.start();
         
-        // Render animation
-        const frameInterval = 1000 / fps;
+        // Render frames with proper timing
         let currentFrame = 0;
-        const totalFrames = Math.ceil(totalDuration * fps);
         
-        const renderLoop = setInterval(async () => {
+        const renderNextFrame = async () => {
+            if (currentFrame >= totalFrames) {
+                // Add a small delay before stopping to ensure last frame is captured
+                setTimeout(() => {
+                    mediaRecorder.stop();
+                }, 100);
+                return;
+            }
+            
             const time = currentFrame / fps;
-            await renderFrameToCanvas(ctx, canvas, time, width, height);
+            
+            // Render frame to canvas
+            await renderFrameToCanvas(ctx, canvas, time, width, height, bgImage);
+            
+            // Manually request frame capture
+            stream.getTracks()[0].requestFrame();
             
             currentFrame++;
-            progress.textContent = `Recording: ${Math.round((currentFrame / totalFrames) * 100)}%`;
+            const progressPercent = Math.round((currentFrame / totalFrames) * 100);
+            progress.textContent = `Rendering: ${progressPercent}% (${currentFrame}/${totalFrames} frames)`;
             
-            if (currentFrame >= totalFrames) {
-                clearInterval(renderLoop);
-                mediaRecorder.stop();
-            }
-        }, frameInterval);
+            // Use setTimeout for more reliable frame timing
+            setTimeout(renderNextFrame, 0);
+        };
+        
+        // Start rendering
+        await renderNextFrame();
         
     } catch (error) {
         console.error('Export error:', error);
