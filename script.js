@@ -619,70 +619,148 @@ async function startExport() {
             height = 1080;
         }
         
+        // Create canvas
         const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
-        const ctx = canvas.getContext('2d', { alpha: false });
+        const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: false });
         
         // Pre-load background
         let bgImage = null;
         const bgType = document.getElementById('bgType').value;
         if ((bgType === 'image' || bgType === 'url') && bgImageData) {
+            progress.textContent = 'Loading background image...';
             bgImage = await loadImage(bgImageData);
         }
         
         const totalFrames = Math.ceil(totalDuration * fps);
-        const frameDuration = 1000 / fps;
         
-        // Create stream and recorder
-        const stream = canvas.captureStream(fps);
+        // PRE-RENDER ALL FRAMES AS IMAGES
+        progress.textContent = 'Pre-rendering frames (this may take a moment)...';
+        const frameBlobs = [];
+        
+        for (let i = 0; i < totalFrames; i++) {
+            const time = i / fps;
+            await renderFrameToCanvas(ctx, canvas, time, width, height, bgImage);
+            
+            // Convert to blob
+            const blob = await new Promise(resolve => {
+                canvas.toBlob(resolve, 'image/webp', 0.92);
+            });
+            frameBlobs.push(blob);
+            
+            if (i % 10 === 0) {
+                const percent = Math.round((i / totalFrames) * 100);
+                progress.textContent = `Pre-rendering: ${percent}% (${i}/${totalFrames} frames)`;
+                await new Promise(r => setTimeout(r, 0)); // Allow UI update
+            }
+        }
+        
+        progress.textContent = 'Encoding video from frames...';
+        
+        // NOW CREATE VIDEO FROM PRE-RENDERED FRAMES
+        const videoCanvas = document.createElement('canvas');
+        videoCanvas.width = width;
+        videoCanvas.height = height;
+        const videoCtx = videoCanvas.getContext('2d');
+        
+        // Create video stream
+        const videoStream = videoCanvas.captureStream(0);
+        const videoTrack = videoStream.getVideoTracks()[0];
+        
+        // Add audio track if music exists
+        let finalStream = videoStream;
+        if (musicAudio && musicData) {
+            try {
+                const audioContext = new AudioContext();
+                const audioSource = audioContext.createMediaElementSource(musicAudio);
+                const destination = audioContext.createMediaStreamDestination();
+                audioSource.connect(destination);
+                audioSource.connect(audioContext.destination);
+                
+                const audioTrack = destination.stream.getAudioTracks()[0];
+                finalStream = new MediaStream([videoTrack, audioTrack]);
+                
+                // Reset and play audio
+                musicAudio.currentTime = parseFloat(document.getElementById('musicStart').value) || 0;
+                await musicAudio.play();
+            } catch (e) {
+                console.warn('Audio mixing failed:', e);
+                finalStream = videoStream;
+            }
+        }
+        
         const chunks = [];
+        let mimeType = 'video/webm;codecs=vp8,opus';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = 'video/webm';
+        }
         
-        const mediaRecorder = new MediaRecorder(stream, {
-            mimeType: 'video/webm',
-            videoBitsPerSecond: 5000000
+        const mediaRecorder = new MediaRecorder(finalStream, {
+            mimeType: mimeType,
+            videoBitsPerSecond: 6000000
         });
         
         mediaRecorder.ondataavailable = e => {
             if (e.data.size > 0) chunks.push(e.data);
         };
         
-        const done = new Promise(resolve => {
+        const recordingStopped = new Promise(resolve => {
             mediaRecorder.onstop = resolve;
         });
         
-        mediaRecorder.start(100);
+        mediaRecorder.start();
         
-        // Render frames in real-time
-        const startRenderTime = performance.now();
+        // Play frames at exact intervals
+        const frameDuration = 1000 / fps;
         
-        for (let i = 0; i < totalFrames; i++) {
-            const targetTime = startRenderTime + (i * frameDuration);
-            const time = i / fps;
+        for (let i = 0; i < frameBlobs.length; i++) {
+            const frameStart = performance.now();
             
-            await renderFrameToCanvas(ctx, canvas, time, width, height, bgImage);
+            // Draw frame
+            const img = await createImageBitmap(frameBlobs[i]);
+            videoCtx.drawImage(img, 0, 0);
             
-            progress.textContent = `Recording: ${Math.round((i / totalFrames) * 100)}% (${i}/${totalFrames})`;
+            // Request frame capture from stream
+            videoTrack.requestFrame();
             
-            // Wait for real-time sync
-            const now = performance.now();
-            const delay = Math.max(0, targetTime - now);
-            await new Promise(r => setTimeout(r, delay));
+            if (i % 10 === 0) {
+                const percent = Math.round((i / frameBlobs.length) * 100);
+                progress.textContent = `Encoding: ${percent}%`;
+            }
+            
+            // Wait for next frame time
+            const elapsed = performance.now() - frameStart;
+            const waitTime = Math.max(0, frameDuration - elapsed);
+            await new Promise(r => setTimeout(r, waitTime));
         }
         
-        mediaRecorder.stop();
-        await done;
+        // Stop audio if playing
+        if (musicAudio) {
+            musicAudio.pause();
+        }
         
+        // Wait a bit then stop recording
+        await new Promise(r => setTimeout(r, 500));
+        mediaRecorder.stop();
+        await recordingStopped;
+        
+        // Download
         const blob = new Blob(chunks, { type: 'video/webm' });
         downloadBlob(blob, `credits-${width}x${height}-${fps}fps.webm`);
         
-        progress.textContent = 'Export complete!';
+        progress.textContent = `Export complete! Downloaded ${frameBlobs.length} frames at ${fps} FPS`;
         exportBtn.disabled = false;
         
     } catch (error) {
         console.error('Export error:', error);
         progress.textContent = 'Export failed: ' + error.message;
         exportBtn.disabled = false;
+        
+        // Stop audio on error
+        if (musicAudio) {
+            musicAudio.pause();
+        }
     }
 }
 
