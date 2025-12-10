@@ -587,7 +587,6 @@ function initExportControls() {
     const exportBtn = document.getElementById('exportBtn');
     exportBtn.addEventListener('click', startExport);
 }
-
 async function startExport() {
     const resolutionVal = document.getElementById('exportRes').value;
     const fps = parseInt(document.getElementById('exportFps').value);
@@ -625,8 +624,7 @@ async function startExport() {
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d', { 
-            alpha: false,
-            desynchronized: true 
+            alpha: false
         });
         
         // Pre-load background image if needed
@@ -638,10 +636,9 @@ async function startExport() {
         
         // Calculate total frames
         const totalFrames = Math.ceil(totalDuration * fps);
-        const frameDuration = 1000 / fps;
         
-        // Create MediaRecorder with higher quality settings
-        const stream = canvas.captureStream(0); // Manual frame capture
+        // Create MediaRecorder with proper FPS
+        const stream = canvas.captureStream(fps); // Set target FPS
         const chunks = [];
         
         // Try different codecs for best quality
@@ -655,36 +652,50 @@ async function startExport() {
         
         const mediaRecorder = new MediaRecorder(stream, {
             mimeType: mimeType,
-            videoBitsPerSecond: 10000000 // 10 Mbps for better quality
+            videoBitsPerSecond: 8000000 // 8 Mbps
         });
         
         mediaRecorder.ondataavailable = e => {
-            if (e.data.size > 0) chunks.push(e.data);
+            if (e.data.size > 0) {
+                chunks.push(e.data);
+            }
         };
         
         mediaRecorder.onstop = () => {
+            if (chunks.length === 0) {
+                progress.textContent = 'Export failed: No video data captured';
+                exportBtn.disabled = false;
+                return;
+            }
+            
             const blob = new Blob(chunks, { type: 'video/webm' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `credits-${width}x${height}-${fps}fps.webm`;
             a.click();
-            URL.revokeObjectURL(url);
+            
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+            
             progress.textContent = 'Export complete! Video downloaded.';
             exportBtn.disabled = false;
         };
         
+        // Start recording
         mediaRecorder.start();
         
+        // Wait a moment for recorder to initialize
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         // Render frames with proper timing
+        const frameDelay = 1000 / fps;
         let currentFrame = 0;
         
         const renderNextFrame = async () => {
             if (currentFrame >= totalFrames) {
-                // Add a small delay before stopping to ensure last frame is captured
-                setTimeout(() => {
-                    mediaRecorder.stop();
-                }, 100);
+                // Wait for final frames to be captured
+                await new Promise(resolve => setTimeout(resolve, 500));
+                mediaRecorder.stop();
                 return;
             }
             
@@ -693,19 +704,16 @@ async function startExport() {
             // Render frame to canvas
             await renderFrameToCanvas(ctx, canvas, time, width, height, bgImage);
             
-            // Manually request frame capture
-            stream.getTracks()[0].requestFrame();
-            
             currentFrame++;
             const progressPercent = Math.round((currentFrame / totalFrames) * 100);
-            progress.textContent = `Rendering: ${progressPercent}% (${currentFrame}/${totalFrames} frames)`;
+            progress.textContent = `Rendering: ${progressPercent}% (${currentFrame}/${totalFrames} frames, ${time.toFixed(1)}s)`;
             
-            // Use setTimeout for more reliable frame timing
-            setTimeout(renderNextFrame, 0);
+            // Wait appropriate time before next frame
+            setTimeout(renderNextFrame, frameDelay);
         };
         
         // Start rendering
-        await renderNextFrame();
+        renderNextFrame();
         
     } catch (error) {
         console.error('Export error:', error);
