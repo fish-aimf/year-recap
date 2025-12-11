@@ -588,13 +588,22 @@ function initExportControls() {
     const lockSettingsBtn = document.getElementById('lockSettingsBtn');
     const exportRes = document.getElementById('exportRes');
     const exportFps = document.getElementById('exportFps');
-    const exportSection = document.getElementById('exportSection');
+    const contentSection = document.getElementById('contentSection');
+    const exportFileName = document.getElementById('exportFileName');
+    const fileNamePreview = document.getElementById('fileNamePreview');
     
     // Listen for resolution changes (updates preview aspect ratio)
-    exportRes.addEventListener('change', updatePreviewAspectRatio);
+    exportRes.addEventListener('change', () => {
+        updatePreviewAspectRatio();
+        updateFileNamePreview();
+    });
+    
+    exportFps.addEventListener('change', updateFileNamePreview);
+    exportFileName.addEventListener('input', updateFileNamePreview);
     
     // Initialize aspect ratio on load
     updatePreviewAspectRatio();
+    updateFileNamePreview();
     
     // Lock settings button
     lockSettingsBtn.addEventListener('click', () => {
@@ -602,15 +611,42 @@ function initExportControls() {
         exportRes.disabled = true;
         exportFps.disabled = true;
         
-        // Hide lock button
-        lockSettingsBtn.style.display = 'none';
+        // Hide lock button and show success message
+        lockSettingsBtn.textContent = '✅ Settings Locked';
+        lockSettingsBtn.disabled = true;
+        lockSettingsBtn.style.background = '#666';
         
-        // Show export section
-        exportSection.style.display = 'block';
+        // Show content section
+        contentSection.style.display = 'block';
+        
+        // Smooth scroll to next section
+        setTimeout(() => {
+            contentSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
     });
     
     // Export button
     exportBtn.addEventListener('click', startExport);
+}
+
+function updateFileNamePreview() {
+    const fileName = document.getElementById('exportFileName').value.trim() || 'my-video';
+    const resolutionVal = document.getElementById('exportRes').value;
+    const fps = document.getElementById('exportFps').value;
+    
+    let width, height;
+    if (resolutionVal === 'shorts' || resolutionVal === 'instagram') {
+        width = 1080;
+        height = 1920;
+    } else if (resolutionVal === '720') {
+        width = 1280;
+        height = 720;
+    } else {
+        width = 1920;
+        height = 1080;
+    }
+    
+    document.getElementById('fileNamePreview').textContent = `${fileName}-${width}x${height}-${fps}fps.webm`;
 }
 function updatePreviewAspectRatio() {
     const resolutionVal = document.getElementById('exportRes').value;
