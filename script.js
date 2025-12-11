@@ -399,13 +399,14 @@ function updatePreview() {
     const container = document.getElementById('textContainer');
     container.innerHTML = '';
     
+    const previewWindow = document.getElementById('previewWindow');
+    const scaleFactor = previewWindow.offsetWidth / 1920;
+    
     textItems.forEach(item => {
         const textEl = document.createElement('div');
         textEl.className = 'text-element';
         textEl.innerHTML = parseStyledText(item.content);
         textEl.style.fontFamily = item.font;
-        const previewWindow = document.getElementById('previewWindow');
-        const scaleFactor = previewWindow.offsetWidth / 1920;
         textEl.style.fontSize = (item.size * scaleFactor) + 'px';
         textEl.style.fontWeight = item.weight;
         textEl.style.color = item.color;
@@ -433,8 +434,10 @@ function applyAnimation(element, item) {
     const delay = item.delay;
     const duration = item.duration;
     const easing = item.easing;
+    
+    // Scale to preview size
     const previewWindow = document.getElementById('previewWindow');
-    const scaleFactor = previewWindow.offsetWidth / 1920; 
+    const scaleFactor = previewWindow.offsetWidth / 1920;
     const scaledSize = item.size * scaleFactor;
     
     gsap.set(element, { clearProps: 'all' });
@@ -457,134 +460,135 @@ function applyAnimation(element, item) {
     }
     
     switch(item.animation) {
-    case 'creditsScroll':
-        gsap.set(element, { 
-            top: '100%',
-            left: item.align === 'left' ? '5%' : item.align === 'right' ? '95%' : '50%',
-            xPercent: item.align === 'left' ? 0 : item.align === 'right' ? -100 : -50,
-            opacity: 1
-        });
-        gsap.to(element, {
-            top: '-100%',
-            duration: duration,
-            delay: delay,
-            ease: easing || 'none'
-        });
-        break;
-        
-    case 'slideLeft':
-        gsap.set(element, { 
-            x: '-100%',
-            left: 0,
-            top: '50%',
-            yPercent: -50,
-            opacity: 1
-        });
-        gsap.to(element, {
-            x: item.align === 'left' ? '5%' : item.align === 'right' ? '95%' : '0%',
-            duration: duration,
-            delay: delay,
-            ease: easing || 'power1.out'
-        });
-        break;
-        
-    case 'slideRight':
-        gsap.set(element, { 
-            x: '100%',
-            right: 0,
-            top: '50%',
-            yPercent: -50,
-            opacity: 1
-        });
-        gsap.to(element, {
-            x: item.align === 'left' ? '-95%' : item.align === 'right' ? '-5%' : '0%',
-            duration: duration,
-            delay: delay,
-            ease: easing || 'power1.out'
-        });
-        break;
-        
-    case 'fadeIn':
-        gsap.set(element, { 
-            opacity: 0,
-            left: item.align === 'left' ? '5%' : item.align === 'right' ? '95%' : '50%',
-            top: '50%',
-            xPercent: item.align === 'left' ? 0 : item.align === 'right' ? -100 : -50,
-            yPercent: -50
-        });
-        gsap.to(element, {
-            opacity: 1,
-            duration: duration,
-            delay: delay,
-            ease: easing || 'none'
-        });
-        break;
-        
-    case 'fadeInOut':
-        gsap.set(element, { 
-            opacity: 0,
-            left: item.align === 'left' ? '5%' : item.align === 'right' ? '95%' : '50%',
-            top: '50%',
-            xPercent: item.align === 'left' ? 0 : item.align === 'right' ? -100 : -50,
-            yPercent: -50
-        });
-        gsap.to(element, {
-            opacity: 1,
-            duration: duration / 2,
-            delay: delay,
-            ease: easing || 'none'
-        });
-        gsap.to(element, {
-            opacity: 0,
-            duration: duration / 2,
-            delay: delay + duration / 2,
-            ease: easing || 'none'
-        });
-        break;
-        
-    case 'typewriter':
-        gsap.set(element, { 
-            left: item.align === 'left' ? '5%' : item.align === 'right' ? '95%' : '50%',
-            top: '50%',
-            xPercent: item.align === 'left' ? 0 : item.align === 'right' ? -100 : -50,
-            yPercent: -50,
-            opacity: 1
-        });
-        break;
-        
-    case 'zoomIn':
-        gsap.set(element, { 
-            scale: 0,
-            left: item.align === 'left' ? '5%' : item.align === 'right' ? '95%' : '50%',
-            top: '50%',
-            xPercent: item.align === 'left' ? 0 : item.align === 'right' ? -100 : -50,
-            yPercent: -50,
-            opacity: 1
-        });
-        gsap.to(element, {
-            scale: 1,
-            duration: duration,
-            delay: delay,
-            ease: easing || 'power1.out'
-        });
-        break;
-        
-    case 'zoomOut':
-        gsap.set(element, { 
-            scale: 3,
-            left: item.align === 'left' ? '5%' : item.align === 'right' ? '95%' : '50%',
-            top: '50%',
-            xPercent: item.align === 'left' ? 0 : item.align === 'right' ? -100 : -50,
-            yPercent: -50,
-            opacity: 1
-        });
-        gsap.to(element, {
-            scale: 1,
-            duration: duration,
-            delay: delay,
-            ease: easing || 'power1.out'
-        });
-        break;
+        case 'creditsScroll':
+            gsap.set(element, { 
+                top: '100%',
+                left: item.align === 'left' ? '5%' : item.align === 'right' ? '95%' : '50%',
+                xPercent: item.align === 'left' ? 0 : item.align === 'right' ? -100 : -50,
+                opacity: 1
+            });
+            gsap.to(element, {
+                top: '-100%',
+                duration: duration,
+                delay: delay,
+                ease: easing || 'none'
+            });
+            break;
+            
+        case 'slideLeft':
+            gsap.set(element, { 
+                x: '-100%',
+                left: 0,
+                top: '50%',
+                yPercent: -50,
+                opacity: 1
+            });
+            gsap.to(element, {
+                x: item.align === 'left' ? '5%' : item.align === 'right' ? '95%' : '0%',
+                duration: duration,
+                delay: delay,
+                ease: easing || 'power1.out'
+            });
+            break;
+            
+        case 'slideRight':
+            gsap.set(element, { 
+                x: '100%',
+                right: 0,
+                top: '50%',
+                yPercent: -50,
+                opacity: 1
+            });
+            gsap.to(element, {
+                x: item.align === 'left' ? '-95%' : item.align === 'right' ? '-5%' : '0%',
+                duration: duration,
+                delay: delay,
+                ease: easing || 'power1.out'
+            });
+            break;
+            
+        case 'fadeIn':
+            gsap.set(element, { 
+                opacity: 0,
+                left: item.align === 'left' ? '5%' : item.align === 'right' ? '95%' : '50%',
+                top: '50%',
+                xPercent: item.align === 'left' ? 0 : item.align === 'right' ? -100 : -50,
+                yPercent: -50
+            });
+            gsap.to(element, {
+                opacity: 1,
+                duration: duration,
+                delay: delay,
+                ease: easing || 'none'
+            });
+            break;
+            
+        case 'fadeInOut':
+            gsap.set(element, { 
+                opacity: 0,
+                left: item.align === 'left' ? '5%' : item.align === 'right' ? '95%' : '50%',
+                top: '50%',
+                xPercent: item.align === 'left' ? 0 : item.align === 'right' ? -100 : -50,
+                yPercent: -50
+            });
+            gsap.to(element, {
+                opacity: 1,
+                duration: duration / 2,
+                delay: delay,
+                ease: easing || 'none'
+            });
+            gsap.to(element, {
+                opacity: 0,
+                duration: duration / 2,
+                delay: delay + duration / 2,
+                ease: easing || 'none'
+            });
+            break;
+            
+        case 'typewriter':
+            gsap.set(element, { 
+                left: item.align === 'left' ? '5%' : item.align === 'right' ? '95%' : '50%',
+                top: '50%',
+                xPercent: item.align === 'left' ? 0 : item.align === 'right' ? -100 : -50,
+                yPercent: -50,
+                opacity: 1
+            });
+            break;
+            
+        case 'zoomIn':
+            gsap.set(element, { 
+                scale: 0,
+                left: item.align === 'left' ? '5%' : item.align === 'right' ? '95%' : '50%',
+                top: '50%',
+                xPercent: item.align === 'left' ? 0 : item.align === 'right' ? -100 : -50,
+                yPercent: -50,
+                opacity: 1
+            });
+            gsap.to(element, {
+                scale: 1,
+                duration: duration,
+                delay: delay,
+                ease: easing || 'power1.out'
+            });
+            break;
+            
+        case 'zoomOut':
+            gsap.set(element, { 
+                scale: 3,
+                left: item.align === 'left' ? '5%' : item.align === 'right' ? '95%' : '50%',
+                top: '50%',
+                xPercent: item.align === 'left' ? 0 : item.align === 'right' ? -100 : -50,
+                yPercent: -50,
+                opacity: 1
+            });
+            gsap.to(element, {
+                scale: 1,
+                duration: duration,
+                delay: delay,
+                ease: easing || 'power1.out'
+            });
+            break;
+    }
 }
 // Export Controls
 function initExportControls() {
@@ -663,9 +667,10 @@ function updatePreviewAspectRatio() {
     } else if (resolutionVal === '720' || resolutionVal === '1080') {
         previewWindow.classList.add('aspect-16-9');
     }
+    
+    // Re-render with correct scaling
     setTimeout(() => updatePreview(), 100);
 }
-
 async function startExport() {
     const resolutionVal = document.getElementById('exportRes').value;
     const fps = parseInt(document.getElementById('exportFps').value);
@@ -928,7 +933,7 @@ function renderTextItem(ctx, item, progress, width, height) {
     
     const lines = item.content.split('\n');
     const fontWeight = item.weight;
-    const fontSize = item.size * (width / 1920); 
+    const fontSize = item.size * (width / 1920); // Scale font to canvas resolution
     const fontFamily = item.font;
     
     ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
@@ -1004,7 +1009,6 @@ function renderTextItem(ctx, item, progress, width, height) {
             baseY = height / 2;
             ctx.textAlign = item.align;
     }
-            
     
     ctx.globalAlpha = opacity;
     
@@ -1014,7 +1018,7 @@ function renderTextItem(ctx, item, progress, width, height) {
         ctx.translate(-baseX, -baseY);
     }
     
-    const lineHeight = fontSize * item.lineHeight * 1.2; 
+    const lineHeight = fontSize * item.lineHeight * 1.2; // Match DOM rendering
     const totalHeight = lines.length * lineHeight;
     
     if (item.animation !== 'creditsScroll') {
