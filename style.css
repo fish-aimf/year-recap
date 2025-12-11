@@ -423,3 +423,19 @@ select:disabled {
     cursor: not-allowed;
     background: #1a1a1a;
 }
+.text-element {
+    position: absolute;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-width: 90%;
+    pointer-events: none;
+}
+
+#textContainer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
