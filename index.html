@@ -6,126 +6,131 @@
     <title>Recap/Credits Maker</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-
 </head>
 <body>
     <div class="app-container">
         <div class="sidebar">
             <h1>Credits Maker</h1>
             
-            <section class="panel">
-                <h2>Background</h2>
-                <select id="bgType">
-                    <option value="solid">Solid Color</option>
-                    <option value="gradient">Gradient</option>
-                    <option value="image">Image</option>
-                    <option value="video">Video</option>
-                    <option value="url">Image URL</option>
-                </select>
+            <!-- STEP 1: Project Setup (ALWAYS VISIBLE AT TOP) -->
+            <section class="panel priority-panel">
+                <h2>📐 Step 1: Project Setup</h2>
+                <div class="setup-info">Choose your video format first - this cannot be changed later!</div>
                 
-                <div id="solidControls" class="bg-controls">
-                    <input type="color" id="bgColor" value="#000000">
-                </div>
-                
-                <div id="gradientControls" class="bg-controls hidden">
-                    <input type="color" id="gradColor1" value="#000000">
-                    <input type="color" id="gradColor2" value="#333333">
-                    <select id="gradDir">
-                        <option value="to bottom">Top to Bottom</option>
-                        <option value="to right">Left to Right</option>
-                        <option value="to bottom right">Diagonal</option>
-                    </select>
-                </div>
-                
-                <div id="imageControls" class="bg-controls hidden">
-                    <input type="file" id="bgImageFile" accept="image/*">
-                    <label>Fit:</label>
-                    <select id="bgImageFit">
-                        <option value="cover">Cover</option>
-                        <option value="contain">Contain</option>
-                        <option value="fill">Stretch</option>
-                    </select>
-                    <label>Opacity:</label>
-                    <input type="range" id="bgImageOpacity" min="0" max="1" step="0.01" value="1">
-                </div>
-                
-                <div id="urlControls" class="bg-controls hidden">
-                    <input type="text" id="bgImageUrl" placeholder="Enter image URL">
-                    <button id="loadUrlBtn">Load</button>
-                    <label>Fit:</label>
-                    <select id="bgUrlFit">
-                        <option value="cover">Cover</option>
-                        <option value="contain">Contain</option>
-                        <option value="fill">Stretch</option>
-                    </select>
-                    <label>Opacity:</label>
-                    <input type="range" id="bgUrlOpacity" min="0" max="1" step="0.01" value="1">
-                </div>
-                
-                <div id="videoControls" class="bg-controls hidden">
-                    <input type="file" id="bgVideoFile" accept="video/*">
-                    <label>Loop:</label>
-                    <input type="checkbox" id="bgVideoLoop" checked>
-                    <label>Opacity:</label>
-                    <input type="range" id="bgVideoOpacity" min="0" max="1" step="0.01" value="1">
-                    <label>Blur:</label>
-                    <input type="range" id="bgVideoBlur" min="0" max="20" value="0">
-                </div>
-            </section>
-            
-            <section class="panel">
-                <h2>Music</h2>
-                <input type="file" id="musicFile" accept="audio/*">
-                <label>Start Time (s):</label>
-                <input type="number" id="musicStart" value="0" min="0" step="0.1">
-                <label>Volume:</label>
-                <input type="range" id="musicVolume" min="0" max="1" step="0.01" value="0.7">
-            </section>
-            
-            <section class="panel">
-                <h2>Text Items</h2>
-                <button id="addTextBtn">+ Add Text</button>
-                <div id="textList"></div>
-            </section>
-            
-            <section class="panel">
-                <h2>Export Settings</h2>
                 <label>Resolution:</label>
                 <select id="exportRes">
-                    <option value="720">720p (16:9)</option>
-                    <option value="1080">1080p (16:9)</option>
+                    <option value="1080">1080p (16:9) - YouTube</option>
+                    <option value="720">720p (16:9) - YouTube</option>
                     <option value="shorts">YouTube Shorts (9:16)</option>
                     <option value="instagram">Instagram Story (9:16)</option>
                 </select>
                 
                 <label>Frame Rate:</label>
                 <select id="exportFps">
-                    <option value="24">24 FPS</option>
-                    <option value="30">30 FPS</option>
-                    <option value="60">60 FPS</option>
+                    <option value="30" selected>30 FPS (Recommended)</option>
+                    <option value="24">24 FPS (Cinematic)</option>
+                    <option value="60">60 FPS (Smooth)</option>
                 </select>
                 
-                <button id="lockSettingsBtn">Lock Resolution & FPS</button>
+                <button id="lockSettingsBtn" class="btn-lock">🔒 Lock & Continue</button>
+            </section>
+            
+            <!-- STEP 2: Content Creation (HIDDEN UNTIL LOCKED) -->
+            <div id="contentSection" style="display:none;">
                 
-                <div id="exportSection" style="display:none; margin-top: 15px; padding-top: 15px; border-top: 2px solid #444;">
-                    <label>File Name:</label>
-                    <input type="text" id="exportFileName" value="my-video" placeholder="Enter filename">
-                    
-                    <select id="exportFormat">
-                        <option value="webm">WebM</option>
+                <section class="panel">
+                    <h2>🎨 Step 2: Background</h2>
+                    <select id="bgType">
+                        <option value="solid">Solid Color</option>
+                        <option value="gradient">Gradient</option>
+                        <option value="image">Image</option>
+                        <option value="video">Video</option>
+                        <option value="url">Image URL</option>
                     </select>
                     
-                    <button id="exportBtn">Export Video</button>
+                    <div id="solidControls" class="bg-controls">
+                        <input type="color" id="bgColor" value="#000000">
+                    </div>
+                    
+                    <div id="gradientControls" class="bg-controls hidden">
+                        <input type="color" id="gradColor1" value="#000000">
+                        <input type="color" id="gradColor2" value="#333333">
+                        <select id="gradDir">
+                            <option value="to bottom">Top to Bottom</option>
+                            <option value="to right">Left to Right</option>
+                            <option value="to bottom right">Diagonal</option>
+                        </select>
+                    </div>
+                    
+                    <div id="imageControls" class="bg-controls hidden">
+                        <input type="file" id="bgImageFile" accept="image/*">
+                        <label>Fit:</label>
+                        <select id="bgImageFit">
+                            <option value="cover">Cover</option>
+                            <option value="contain">Contain</option>
+                            <option value="fill">Stretch</option>
+                        </select>
+                        <label>Opacity:</label>
+                        <input type="range" id="bgImageOpacity" min="0" max="1" step="0.01" value="1">
+                    </div>
+                    
+                    <div id="urlControls" class="bg-controls hidden">
+                        <input type="text" id="bgImageUrl" placeholder="Enter image URL">
+                        <button id="loadUrlBtn">Load</button>
+                        <label>Fit:</label>
+                        <select id="bgUrlFit">
+                            <option value="cover">Cover</option>
+                            <option value="contain">Contain</option>
+                            <option value="fill">Stretch</option>
+                        </select>
+                        <label>Opacity:</label>
+                        <input type="range" id="bgUrlOpacity" min="0" max="1" step="0.01" value="1">
+                    </div>
+                    
+                    <div id="videoControls" class="bg-controls hidden">
+                        <input type="file" id="bgVideoFile" accept="video/*">
+                        <label>Loop:</label>
+                        <input type="checkbox" id="bgVideoLoop" checked>
+                        <label>Opacity:</label>
+                        <input type="range" id="bgVideoOpacity" min="0" max="1" step="0.01" value="1">
+                        <label>Blur:</label>
+                        <input type="range" id="bgVideoBlur" min="0" max="20" value="0">
+                    </div>
+                </section>
+                
+                <section class="panel">
+                    <h2>🎵 Step 3: Music (Optional)</h2>
+                    <input type="file" id="musicFile" accept="audio/*">
+                    <label>Start Time (s):</label>
+                    <input type="number" id="musicStart" value="0" min="0" step="0.1">
+                    <label>Volume:</label>
+                    <input type="range" id="musicVolume" min="0" max="1" step="0.01" value="0.7">
+                </section>
+                
+                <section class="panel">
+                    <h2>✏️ Step 4: Text Items</h2>
+                    <button id="addTextBtn">+ Add Text</button>
+                    <div id="textList"></div>
+                </section>
+                
+                <section class="panel priority-panel">
+                    <h2>🎬 Step 5: Export Video</h2>
+                    <label>File Name:</label>
+                    <input type="text" id="exportFileName" value="my-video" placeholder="Enter filename">
+                    <small style="color: #888;">Final name: <span id="fileNamePreview">my-video-1920x1080-30fps.webm</span></small>
+                    
+                    <button id="exportBtn" class="btn-export">📹 Export Video</button>
                     <div id="exportProgress"></div>
-                </div>
-            </section>
+                </section>
+                
+            </div>
         </div>
         
         <div class="preview-area">
             <div class="preview-controls">
-                <button id="playBtn">Play</button>
-                <button id="pauseBtn">Pause</button>
-                <button id="restartBtn">Restart</button>
+                <button id="playBtn">▶ Play</button>
+                <button id="pauseBtn">⏸ Pause</button>
+                <button id="restartBtn">⏮ Restart</button>
                 <span id="timeDisplay">0.0s</span>
             </div>
             <div id="previewWindow">
