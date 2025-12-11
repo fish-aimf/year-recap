@@ -169,13 +169,25 @@ body {
 }
 
 #previewWindow {
-    flex: 1;
     position: relative;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
     background: #000;
     overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+}
+
+#previewWindow.aspect-16-9 {
+    aspect-ratio: 16/9;
+}
+
+#previewWindow.aspect-9-16 {
+    aspect-ratio: 9/16;
+    max-width: 450px;
+}
+
+#previewWindow.aspect-4-3 {
+    aspect-ratio: 4/3;
 }
 
 #bgVideo {
