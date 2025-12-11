@@ -317,11 +317,10 @@ body {
 #previewWindow.aspect-4-3 {
     aspect-ratio: 4 / 3;
 }
-
 #exportFileName {
     width: 100%;
     padding: 8px;
-    margin-bottom: 10px;
+    margin: 10px 0;
     background: #2a2a2a;
     border: 1px solid #444;
     color: #fff;
@@ -334,11 +333,18 @@ body {
     border-color: #007bff;
 }
 
-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+#lockSettingsBtn {
+    width: 100%;
+    margin-top: 10px;
+    background: #28a745;
 }
 
-#lockSettingsBtn {
-    margin-top: 10px;
+#lockSettingsBtn:hover {
+    background: #218838;
+}
+
+select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #1a1a1a;
 }
