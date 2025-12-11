@@ -89,12 +89,9 @@
             </section>
             
             <section class="panel">
-                <h2>Export</h2>
-                <label>File Name:</label>
-                <input type="text" id="exportFileName" value="my-video" placeholder="Enter filename">
-                
+                <h2>Export Settings</h2>
                 <label>Resolution:</label>
-                <select id="exportRes" disabled>
+                <select id="exportRes">
                     <option value="720">720p (16:9)</option>
                     <option value="1080">1080p (16:9)</option>
                     <option value="shorts">YouTube Shorts (9:16)</option>
@@ -102,19 +99,25 @@
                 </select>
                 
                 <label>Frame Rate:</label>
-                <select id="exportFps" disabled>
+                <select id="exportFps">
                     <option value="24">24 FPS</option>
                     <option value="30">30 FPS</option>
                     <option value="60">60 FPS</option>
                 </select>
                 
-                <select id="exportFormat">
-                    <option value="webm">WebM</option>
-                </select>
+                <button id="lockSettingsBtn">Lock Resolution & FPS</button>
                 
-                <button id="lockSettingsBtn" class="btn-primary">Lock Settings & Enable Export</button>
-                <button id="exportBtn" class="btn-primary" disabled style="display:none;">Export Video</button>
-                <div id="exportProgress"></div>
+                <div id="exportSection" style="display:none; margin-top: 15px; padding-top: 15px; border-top: 2px solid #444;">
+                    <label>File Name:</label>
+                    <input type="text" id="exportFileName" value="my-video" placeholder="Enter filename">
+                    
+                    <select id="exportFormat">
+                        <option value="webm">WebM</option>
+                    </select>
+                    
+                    <button id="exportBtn">Export Video</button>
+                    <div id="exportProgress"></div>
+                </div>
             </section>
         </div>
         
