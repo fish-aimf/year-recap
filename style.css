@@ -348,3 +348,66 @@ select:disabled {
     cursor: not-allowed;
     background: #1a1a1a;
 }
+.priority-panel {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 2px solid #0f3460;
+}
+
+.priority-panel h2 {
+    color: #4fc3f7;
+}
+
+.setup-info {
+    background: rgba(255, 193, 7, 0.1);
+    border-left: 3px solid #ffc107;
+    padding: 10px;
+    margin: 10px 0;
+    color: #ffc107;
+    font-size: 13px;
+}
+
+.btn-lock {
+    width: 100%;
+    margin-top: 15px;
+    padding: 12px;
+    background: #4caf50;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.btn-lock:hover {
+    background: #45a049;
+}
+
+.btn-export {
+    width: 100%;
+    padding: 15px;
+    background: #f44336;
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.btn-export:hover {
+    background: #da190b;
+}
+
+#fileNamePreview {
+    color: #4fc3f7;
+    font-weight: bold;
+}
+
+#contentSection {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #1a1a1a;
+}
