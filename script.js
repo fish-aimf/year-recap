@@ -404,7 +404,9 @@ function updatePreview() {
         textEl.className = 'text-element';
         textEl.innerHTML = parseStyledText(item.content);
         textEl.style.fontFamily = item.font;
-        textEl.style.fontSize = item.size + 'px';
+        const previewWindow = document.getElementById('previewWindow');
+        const scaleFactor = previewWindow.offsetWidth / 1920;
+        textEl.style.fontSize = (item.size * scaleFactor) + 'px';
         textEl.style.fontWeight = item.weight;
         textEl.style.color = item.color;
         textEl.style.letterSpacing = item.letterSpacing + 'px';
@@ -426,14 +428,18 @@ function updatePreview() {
     });
 }
 
+
 function applyAnimation(element, item) {
     const delay = item.delay;
     const duration = item.duration;
     const easing = item.easing;
+    const previewWindow = document.getElementById('previewWindow');
+    const scaleFactor = previewWindow.offsetWidth / 1920; 
+    const scaledSize = item.size * scaleFactor;
     
     gsap.set(element, { clearProps: 'all' });
     element.style.fontFamily = item.font;
-    element.style.fontSize = item.size + 'px';
+    element.style.fontSize = scaledSize + 'px';
     element.style.fontWeight = item.weight;
     element.style.color = item.color;
     element.style.letterSpacing = item.letterSpacing + 'px';
@@ -659,6 +665,7 @@ function updatePreviewAspectRatio() {
     } else if (resolutionVal === '720' || resolutionVal === '1080') {
         previewWindow.classList.add('aspect-16-9');
     }
+    setTimeout(() => updatePreview(), 100);
 }
 
 async function startExport() {
@@ -923,7 +930,7 @@ function renderTextItem(ctx, item, progress, width, height) {
     
     const lines = item.content.split('\n');
     const fontWeight = item.weight;
-    const fontSize = item.size;
+    const fontSize = item.size * (width / 1920); 
     const fontFamily = item.font;
     
     ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
@@ -1008,7 +1015,7 @@ function renderTextItem(ctx, item, progress, width, height) {
         ctx.translate(-baseX, -baseY);
     }
     
-    const lineHeight = fontSize * item.lineHeight;
+    const lineHeight = fontSize * item.lineHeight * 1.2; 
     const totalHeight = lines.length * lineHeight;
     
     if (item.animation !== 'creditsScroll') {
