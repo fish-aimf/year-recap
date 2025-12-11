@@ -585,10 +585,21 @@ function applyAnimation(element, item) {
 // Export Controls
 function initExportControls() {
     const exportBtn = document.getElementById('exportBtn');
+    const lockSettingsBtn = document.getElementById('lockSettingsBtn');
+    const exportRes = document.getElementById('exportRes');
+    const exportFps = document.getElementById('exportFps');
+    
+    lockSettingsBtn.addEventListener('click', () => {
+        exportRes.disabled = true;
+        exportFps.disabled = true;
+        lockSettingsBtn.style.display = 'none';
+        exportBtn.style.display = 'inline-block';
+        exportBtn.disabled = false;
+    });
+    
     exportBtn.addEventListener('click', startExport);
     
-    // NEW: Listen for resolution changes
-    const exportRes = document.getElementById('exportRes');
+    // Listen for resolution changes (only when unlocked)
     exportRes.addEventListener('change', updatePreviewAspectRatio);
     
     // Initialize aspect ratio on load
@@ -753,15 +764,19 @@ async function startExport() {
         // Download
         const blob = new Blob(chunks, { type: 'video/webm' });
         const sizeMB = (blob.size / (1024 * 1024)).toFixed(2);
-        downloadBlob(blob, `credits-${width}x${height}-${fps}fps.webm`);
+        
+        const fileName = document.getElementById('exportFileName').value || 'my-video';
+        downloadBlob(blob, `${fileName}-${width}x${height}-${fps}fps.webm`);
         
         progress.textContent = `✓ Complete! ${totalFrames} frames, ${sizeMB}MB`;
-        exportBtn.disabled = false;
+        
+        // Disable export button after successful export
+        exportBtn.disabled = true;
+        progress.textContent += ' (Refresh page to export again)';
         
     } catch (error) {
         console.error('Export error:', error);
         progress.textContent = '✗ Export failed: ' + error.message;
-        exportBtn.disabled = false;
         
         if (musicAudio) {
             musicAudio.pause();
