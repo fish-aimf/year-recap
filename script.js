@@ -457,137 +457,135 @@ function applyAnimation(element, item) {
     }
     
     switch(item.animation) {
-        case 'creditsScroll':
-            gsap.set(element, { 
-                top: '100%',
-                left: '50%',
-                xPercent: -50,
-                opacity: 1
-            });
-            gsap.to(element, {
-                top: '-100%',
-                duration: duration,
-                delay: delay,
-                ease: easing || 'none'
-            });
-            break;
-            
-        case 'slideLeft':
-            gsap.set(element, { 
-                x: '-100%',
-                left: 0,
-                top: '50%',
-                yPercent: -50,
-                opacity: 1
-            });
-            gsap.to(element, {
-                x: '0%',
-                duration: duration,
-                delay: delay,
-                ease: easing || 'power1.out'
-            });
-            break;
-            
-        case 'slideRight':
-            gsap.set(element, { 
-                x: '100%',
-                right: 0,
-                top: '50%',
-                yPercent: -50,
-                opacity: 1
-            });
-            gsap.to(element, {
-                x: '0%',
-                duration: duration,
-                delay: delay,
-                ease: easing || 'power1.out'
-            });
-            break;
-            
-        case 'fadeIn':
-            gsap.set(element, { 
-                opacity: 0,
-                left: '50%',
-                top: '50%',
-                xPercent: -50,
-                yPercent: -50
-            });
-            gsap.to(element, {
-                opacity: 1,
-                duration: duration,
-                delay: delay,
-                ease: easing || 'none'
-            });
-            break;
-            
-        case 'fadeInOut':
-            gsap.set(element, { 
-                opacity: 0,
-                left: '50%',
-                top: '50%',
-                xPercent: -50,
-                yPercent: -50
-            });
-            gsap.to(element, {
-                opacity: 1,
-                duration: duration / 2,
-                delay: delay,
-                ease: easing || 'none'
-            });
-            gsap.to(element, {
-                opacity: 0,
-                duration: duration / 2,
-                delay: delay + duration / 2,
-                ease: easing || 'none'
-            });
-            break;
-            
-        case 'typewriter':
-            gsap.set(element, { 
-                left: '50%',
-                top: '50%',
-                xPercent: -50,
-                yPercent: -50,
-                opacity: 1
-            });
-            break;
-            
-        case 'zoomIn':
-            gsap.set(element, { 
-                scale: 0,
-                left: '50%',
-                top: '50%',
-                xPercent: -50,
-                yPercent: -50,
-                opacity: 1
-            });
-            gsap.to(element, {
-                scale: 1,
-                duration: duration,
-                delay: delay,
-                ease: easing || 'power1.out'
-            });
-            break;
-            
-        case 'zoomOut':
-            gsap.set(element, { 
-                scale: 3,
-                left: '50%',
-                top: '50%',
-                xPercent: -50,
-                yPercent: -50,
-                opacity: 1
-            });
-            gsap.to(element, {
-                scale: 1,
-                duration: duration,
-                delay: delay,
-                ease: easing || 'power1.out'
-            });
-            break;
-    }
+    case 'creditsScroll':
+        gsap.set(element, { 
+            top: '100%',
+            left: item.align === 'left' ? '5%' : item.align === 'right' ? '95%' : '50%',
+            xPercent: item.align === 'left' ? 0 : item.align === 'right' ? -100 : -50,
+            opacity: 1
+        });
+        gsap.to(element, {
+            top: '-100%',
+            duration: duration,
+            delay: delay,
+            ease: easing || 'none'
+        });
+        break;
+        
+    case 'slideLeft':
+        gsap.set(element, { 
+            x: '-100%',
+            left: 0,
+            top: '50%',
+            yPercent: -50,
+            opacity: 1
+        });
+        gsap.to(element, {
+            x: item.align === 'left' ? '5%' : item.align === 'right' ? '95%' : '0%',
+            duration: duration,
+            delay: delay,
+            ease: easing || 'power1.out'
+        });
+        break;
+        
+    case 'slideRight':
+        gsap.set(element, { 
+            x: '100%',
+            right: 0,
+            top: '50%',
+            yPercent: -50,
+            opacity: 1
+        });
+        gsap.to(element, {
+            x: item.align === 'left' ? '-95%' : item.align === 'right' ? '-5%' : '0%',
+            duration: duration,
+            delay: delay,
+            ease: easing || 'power1.out'
+        });
+        break;
+        
+    case 'fadeIn':
+        gsap.set(element, { 
+            opacity: 0,
+            left: item.align === 'left' ? '5%' : item.align === 'right' ? '95%' : '50%',
+            top: '50%',
+            xPercent: item.align === 'left' ? 0 : item.align === 'right' ? -100 : -50,
+            yPercent: -50
+        });
+        gsap.to(element, {
+            opacity: 1,
+            duration: duration,
+            delay: delay,
+            ease: easing || 'none'
+        });
+        break;
+        
+    case 'fadeInOut':
+        gsap.set(element, { 
+            opacity: 0,
+            left: item.align === 'left' ? '5%' : item.align === 'right' ? '95%' : '50%',
+            top: '50%',
+            xPercent: item.align === 'left' ? 0 : item.align === 'right' ? -100 : -50,
+            yPercent: -50
+        });
+        gsap.to(element, {
+            opacity: 1,
+            duration: duration / 2,
+            delay: delay,
+            ease: easing || 'none'
+        });
+        gsap.to(element, {
+            opacity: 0,
+            duration: duration / 2,
+            delay: delay + duration / 2,
+            ease: easing || 'none'
+        });
+        break;
+        
+    case 'typewriter':
+        gsap.set(element, { 
+            left: item.align === 'left' ? '5%' : item.align === 'right' ? '95%' : '50%',
+            top: '50%',
+            xPercent: item.align === 'left' ? 0 : item.align === 'right' ? -100 : -50,
+            yPercent: -50,
+            opacity: 1
+        });
+        break;
+        
+    case 'zoomIn':
+        gsap.set(element, { 
+            scale: 0,
+            left: item.align === 'left' ? '5%' : item.align === 'right' ? '95%' : '50%',
+            top: '50%',
+            xPercent: item.align === 'left' ? 0 : item.align === 'right' ? -100 : -50,
+            yPercent: -50,
+            opacity: 1
+        });
+        gsap.to(element, {
+            scale: 1,
+            duration: duration,
+            delay: delay,
+            ease: easing || 'power1.out'
+        });
+        break;
+        
+    case 'zoomOut':
+        gsap.set(element, { 
+            scale: 3,
+            left: item.align === 'left' ? '5%' : item.align === 'right' ? '95%' : '50%',
+            top: '50%',
+            xPercent: item.align === 'left' ? 0 : item.align === 'right' ? -100 : -50,
+            yPercent: -50,
+            opacity: 1
+        });
+        gsap.to(element, {
+            scale: 1,
+            duration: duration,
+            delay: delay,
+            ease: easing || 'power1.out'
+        });
+        break;
 }
-
 // Export Controls
 function initExportControls() {
     const exportBtn = document.getElementById('exportBtn');
@@ -957,55 +955,56 @@ function renderTextItem(ctx, item, progress, width, height) {
             const scrollStart = height + 100;
             const scrollEnd = -500;
             baseY = scrollStart - (progress * (scrollStart - scrollEnd));
-            baseX = width / 2;
-            ctx.textAlign = 'center';
+            baseX = item.align === 'left' ? 50 : item.align === 'right' ? width - 50 : width / 2;
+            ctx.textAlign = item.align;
             break;
             
         case 'fadeIn':
-            baseX = width / 2;
+            baseX = item.align === 'left' ? 50 : item.align === 'right' ? width - 50 : width / 2;
             baseY = height / 2;
             opacity = progress;
-            ctx.textAlign = 'center';
+            ctx.textAlign = item.align;
             break;
             
         case 'fadeInOut':
-            baseX = width / 2;
+            baseX = item.align === 'left' ? 50 : item.align === 'right' ? width - 50 : width / 2;
             baseY = height / 2;
             opacity = progress < 0.5 ? progress * 2 : (1 - progress) * 2;
-            ctx.textAlign = 'center';
+            ctx.textAlign = item.align;
             break;
             
         case 'slideLeft':
             baseX = width * (1 - progress);
             baseY = height / 2;
-            ctx.textAlign = 'left';
+            ctx.textAlign = item.align === 'right' ? 'right' : 'left';
             break;
             
         case 'slideRight':
             baseX = width * progress;
             baseY = height / 2;
-            ctx.textAlign = 'right';
+            ctx.textAlign = item.align === 'left' ? 'left' : 'right';
             break;
             
         case 'zoomIn':
-            baseX = width / 2;
+            baseX = item.align === 'left' ? 50 : item.align === 'right' ? width - 50 : width / 2;
             baseY = height / 2;
             scale = progress;
-            ctx.textAlign = 'center';
+            ctx.textAlign = item.align;
             break;
             
         case 'zoomOut':
-            baseX = width / 2;
+            baseX = item.align === 'left' ? 50 : item.align === 'right' ? width - 50 : width / 2;
             baseY = height / 2;
             scale = 3 - (progress * 2);
-            ctx.textAlign = 'center';
+            ctx.textAlign = item.align;
             break;
             
         default:
-            baseX = width / 2;
+            baseX = item.align === 'left' ? 50 : item.align === 'right' ? width - 50 : width / 2;
             baseY = height / 2;
             ctx.textAlign = item.align;
     }
+            
     
     ctx.globalAlpha = opacity;
     
