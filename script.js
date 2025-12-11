@@ -955,59 +955,104 @@ function renderTextItem(ctx, item, progress, width, height) {
     let opacity = 1;
     let scale = 1;
     
+    // Set canvas textAlign directly
+    ctx.textAlign = item.align;
+    
     switch(item.animation) {
         case 'creditsScroll':
             const scrollStart = height + 100;
             const scrollEnd = -500;
             baseY = scrollStart - (progress * (scrollStart - scrollEnd));
-            baseX = item.align === 'left' ? 50 : item.align === 'right' ? width - 50 : width / 2;
-            ctx.textAlign = item.align;
+            if (item.align === 'left') {
+                baseX = 50;
+            } else if (item.align === 'right') {
+                baseX = width - 50;
+            } else {
+                baseX = width / 2;
+            }
             break;
             
         case 'fadeIn':
-            baseX = item.align === 'left' ? 50 : item.align === 'right' ? width - 50 : width / 2;
+            if (item.align === 'left') {
+                baseX = 50;
+            } else if (item.align === 'right') {
+                baseX = width - 50;
+            } else {
+                baseX = width / 2;
+            }
             baseY = height / 2;
             opacity = progress;
-            ctx.textAlign = item.align;
             break;
             
         case 'fadeInOut':
-            baseX = item.align === 'left' ? 50 : item.align === 'right' ? width - 50 : width / 2;
+            if (item.align === 'left') {
+                baseX = 50;
+            } else if (item.align === 'right') {
+                baseX = width - 50;
+            } else {
+                baseX = width / 2;
+            }
             baseY = height / 2;
             opacity = progress < 0.5 ? progress * 2 : (1 - progress) * 2;
-            ctx.textAlign = item.align;
             break;
             
         case 'slideLeft':
-            baseX = width * (1 - progress);
+            baseX = -100 + (width * progress);
             baseY = height / 2;
-            ctx.textAlign = item.align === 'right' ? 'right' : 'left';
+            if (item.align === 'right') {
+                ctx.textAlign = 'right';
+            } else if (item.align === 'center') {
+                ctx.textAlign = 'center';
+            } else {
+                ctx.textAlign = 'left';
+            }
             break;
             
         case 'slideRight':
-            baseX = width * progress;
+            baseX = width + 100 - (width * progress);
             baseY = height / 2;
-            ctx.textAlign = item.align === 'left' ? 'left' : 'right';
+            if (item.align === 'left') {
+                ctx.textAlign = 'left';
+            } else if (item.align === 'center') {
+                ctx.textAlign = 'center';
+            } else {
+                ctx.textAlign = 'right';
+            }
             break;
             
         case 'zoomIn':
-            baseX = item.align === 'left' ? 50 : item.align === 'right' ? width - 50 : width / 2;
+            if (item.align === 'left') {
+                baseX = 50;
+            } else if (item.align === 'right') {
+                baseX = width - 50;
+            } else {
+                baseX = width / 2;
+            }
             baseY = height / 2;
             scale = progress;
-            ctx.textAlign = item.align;
             break;
             
         case 'zoomOut':
-            baseX = item.align === 'left' ? 50 : item.align === 'right' ? width - 50 : width / 2;
+            if (item.align === 'left') {
+                baseX = 50;
+            } else if (item.align === 'right') {
+                baseX = width - 50;
+            } else {
+                baseX = width / 2;
+            }
             baseY = height / 2;
             scale = 3 - (progress * 2);
-            ctx.textAlign = item.align;
             break;
             
         default:
-            baseX = item.align === 'left' ? 50 : item.align === 'right' ? width - 50 : width / 2;
+            if (item.align === 'left') {
+                baseX = 50;
+            } else if (item.align === 'right') {
+                baseX = width - 50;
+            } else {
+                baseX = width / 2;
+            }
             baseY = height / 2;
-            ctx.textAlign = item.align;
     }
     
     ctx.globalAlpha = opacity;
@@ -1018,49 +1063,69 @@ function renderTextItem(ctx, item, progress, width, height) {
         ctx.translate(-baseX, -baseY);
     }
     
-    const lineHeight = fontSize * item.lineHeight * 1.2; // Match DOM rendering
+    const lineHeight = fontSize * item.lineHeight * 1.2;
     const totalHeight = lines.length * lineHeight;
     
+    // Center the text block vertically (except for scrolling)
     if (item.animation !== 'creditsScroll') {
         baseY = baseY - (totalHeight / 2) + (fontSize / 2);
     }
     
+    // Render each line
     lines.forEach((line, i) => {
         const y = baseY + (i * lineHeight);
         const segments = parseLineSegments(line);
         
-        let currentX = baseX;
+        // Calculate starting X position for this line based on alignment
+        let lineStartX = baseX;
         
-        if (ctx.textAlign === 'center') {
-            const totalWidth = segments.reduce((sum, seg) => {
-                ctx.font = `${seg.bold ? 'bold' : fontWeight} ${seg.italic ? 'italic' : ''} ${fontSize}px ${fontFamily}`.trim();
-                return sum + ctx.measureText(seg.text).width;
-            }, 0);
-            currentX = baseX - (totalWidth / 2);
-        } else if (ctx.textAlign === 'right') {
-            const totalWidth = segments.reduce((sum, seg) => {
-                ctx.font = `${seg.bold ? 'bold' : fontWeight} ${seg.italic ? 'italic' : ''} ${fontSize}px ${fontFamily}`.trim();
-                return sum + ctx.measureText(seg.text).width;
-            }, 0);
-            currentX = baseX - totalWidth;
-        }
-        
-        segments.forEach(seg => {
-            ctx.font = `${seg.bold ? 'bold' : fontWeight} ${seg.italic ? 'italic' : ''} ${fontSize}px ${fontFamily}`.trim();
-            ctx.fillStyle = seg.color || item.color;
-            
+        // For segments with formatting, we need to draw them individually
+        // but respect the overall alignment
+        if (segments.length === 1 && !segments[0].bold && !segments[0].italic && !segments[0].color) {
+            // Simple line - just draw it
             if (item.outline) {
-                ctx.strokeText(seg.text, currentX, y);
+                ctx.strokeText(line, baseX, y);
             }
-            ctx.fillText(seg.text, currentX, y);
+            ctx.fillText(line, baseX, y);
+        } else {
+            // Complex line with formatting - calculate total width first
+            let totalWidth = 0;
+            segments.forEach(seg => {
+                const weight = seg.bold ? 'bold' : fontWeight;
+                const style = seg.italic ? 'italic' : '';
+                ctx.font = `${style} ${weight} ${fontSize}px ${fontFamily}`.trim();
+                totalWidth += ctx.measureText(seg.text).width;
+            });
             
-            currentX += ctx.measureText(seg.text).width;
-        });
+            // Adjust starting position based on alignment
+            if (ctx.textAlign === 'center') {
+                lineStartX = baseX - (totalWidth / 2);
+            } else if (ctx.textAlign === 'right') {
+                lineStartX = baseX - totalWidth;
+            } else {
+                lineStartX = baseX;
+            }
+            
+            // Draw each segment
+            let currentX = lineStartX;
+            segments.forEach(seg => {
+                const weight = seg.bold ? 'bold' : fontWeight;
+                const style = seg.italic ? 'italic' : '';
+                ctx.font = `${style} ${weight} ${fontSize}px ${fontFamily}`.trim();
+                ctx.fillStyle = seg.color || item.color;
+                
+                if (item.outline) {
+                    ctx.strokeText(seg.text, currentX, y);
+                }
+                ctx.fillText(seg.text, currentX, y);
+                
+                currentX += ctx.measureText(seg.text).width;
+            });
+        }
     });
     
     ctx.restore();
 }
-
 function parseLineSegments(line) {
     const segments = [];
     let currentText = '';
