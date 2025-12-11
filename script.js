@@ -588,22 +588,29 @@ function initExportControls() {
     const lockSettingsBtn = document.getElementById('lockSettingsBtn');
     const exportRes = document.getElementById('exportRes');
     const exportFps = document.getElementById('exportFps');
+    const exportSection = document.getElementById('exportSection');
     
-    lockSettingsBtn.addEventListener('click', () => {
-        exportRes.disabled = true;
-        exportFps.disabled = true;
-        lockSettingsBtn.style.display = 'none';
-        exportBtn.style.display = 'inline-block';
-        exportBtn.disabled = false;
-    });
-    
-    exportBtn.addEventListener('click', startExport);
-    
-    // Listen for resolution changes (only when unlocked)
+    // Listen for resolution changes (updates preview aspect ratio)
     exportRes.addEventListener('change', updatePreviewAspectRatio);
     
     // Initialize aspect ratio on load
     updatePreviewAspectRatio();
+    
+    // Lock settings button
+    lockSettingsBtn.addEventListener('click', () => {
+        // Disable resolution and fps selects
+        exportRes.disabled = true;
+        exportFps.disabled = true;
+        
+        // Hide lock button
+        lockSettingsBtn.style.display = 'none';
+        
+        // Show export section
+        exportSection.style.display = 'block';
+    });
+    
+    // Export button
+    exportBtn.addEventListener('click', startExport);
 }
 function updatePreviewAspectRatio() {
     const resolutionVal = document.getElementById('exportRes').value;
