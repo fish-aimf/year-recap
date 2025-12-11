@@ -90,21 +90,30 @@
             
             <section class="panel">
                 <h2>Export</h2>
-                <select id="exportRes">
+                <label>File Name:</label>
+                <input type="text" id="exportFileName" value="my-video" placeholder="Enter filename">
+                
+                <label>Resolution:</label>
+                <select id="exportRes" disabled>
                     <option value="720">720p (16:9)</option>
                     <option value="1080">1080p (16:9)</option>
                     <option value="shorts">YouTube Shorts (9:16)</option>
                     <option value="instagram">Instagram Story (9:16)</option>
                 </select>
-                <select id="exportFps">
+                
+                <label>Frame Rate:</label>
+                <select id="exportFps" disabled>
                     <option value="24">24 FPS</option>
                     <option value="30">30 FPS</option>
                     <option value="60">60 FPS</option>
                 </select>
+                
                 <select id="exportFormat">
                     <option value="webm">WebM</option>
                 </select>
-                <button id="exportBtn">Export</button>
+                
+                <button id="lockSettingsBtn" class="btn-primary">Lock Settings & Enable Export</button>
+                <button id="exportBtn" class="btn-primary" disabled style="display:none;">Export Video</button>
                 <div id="exportProgress"></div>
             </section>
         </div>
