@@ -1,5 +1,6 @@
 // Global state
 let textItems = [];
+let globalTimeline = null;
 let currentEditingId = null;
 let bgImageData = null;
 let bgVideoData = null;
@@ -341,6 +342,9 @@ function playPreview() {
     if (!isPlaying) {
         isPlaying = true;
         startTime = Date.now() - currentTime;
+        
+        // Resume all GSAP animations
+        gsap.globalTimeline.play();
         updatePreview();
         
         if (musicAudio) {
@@ -360,6 +364,10 @@ function playPreview() {
 
 function pausePreview() {
     isPlaying = false;
+    
+    // Pause all GSAP animations
+    gsap.globalTimeline.pause();
+    
     if (animationFrame) {
         cancelAnimationFrame(animationFrame);
     }
@@ -375,6 +383,11 @@ function pausePreview() {
 function restartPreview() {
     pausePreview();
     currentTime = 0;
+    
+    // Kill all GSAP animations and restart
+    gsap.globalTimeline.clear();
+    gsap.killTweensOf("*");
+    
     updatePreview();
     playPreview();
 }
@@ -398,6 +411,11 @@ function parseStyledText(text) {
 function updatePreview() {
     const container = document.getElementById('textContainer');
     container.innerHTML = '';
+    
+    if (globalTimeline) {
+        globalTimeline.kill();
+    }
+    gsap.killTweensOf("*");
     
     const previewWindow = document.getElementById('previewWindow');
     const scaleFactor = previewWindow.offsetWidth / 1920;
@@ -434,6 +452,9 @@ function applyAnimation(element, item) {
     const delay = item.delay;
     const duration = item.duration;
     const easing = item.easing;
+    
+    // Kill any existing animations on this element
+    gsap.killTweensOf(element);
     
     // Scale to preview size
     const previewWindow = document.getElementById('previewWindow');
@@ -688,7 +709,7 @@ async function startExport() {
             if (endTime > maxEndTime) maxEndTime = endTime;
         });
         
-        const totalDuration = Math.max(maxEndTime + 1, 5);
+        const totalDuration = Math.ceil(maxEndTime) + 2; 
         let width, height;
         
         if (resolutionVal === 'shorts' || resolutionVal === 'instagram') {
@@ -780,13 +801,18 @@ async function startExport() {
         // Render frames at exact intervals
         progress.textContent = 'Rendering frames...';
         const frameDuration = 1000 / fps;
+        let lastFrameTime = performance.now();
         
         for (let frameNum = 0; frameNum < totalFrames; frameNum++) {
-            const frameStart = performance.now();
             const time = frameNum / fps;
             
-            // Render this frame to canvas
-            await renderFrameToCanvas(ctx, canvas, time, width, height, bgImage);
+            // Only render if within actual animation duration
+            if (time <= totalDuration) {
+                await renderFrameToCanvas(ctx, canvas, time, width, height, bgImage);
+            } else {
+                // Just render final static frame
+                await renderFrameToCanvas(ctx, canvas, totalDuration, width, height, bgImage);
+            }
             
             // Update progress
             if (frameNum % 10 === 0) {
@@ -795,9 +821,11 @@ async function startExport() {
                 await new Promise(r => setTimeout(r, 0)); // Let UI update
             }
             
-            // Wait for next frame time
-            const elapsed = performance.now() - frameStart;
-            const waitTime = Math.max(0, frameDuration - elapsed);
+            // Maintain consistent frame timing
+            const targetTime = lastFrameTime + frameDuration;
+            const now = performance.now();
+            const waitTime = Math.max(0, targetTime - now);
+            lastFrameTime = targetTime;
             await new Promise(r => setTimeout(r, waitTime));
         }
         
