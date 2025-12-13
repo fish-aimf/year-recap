@@ -439,3 +439,323 @@ select:disabled {
     height: 100%;
     overflow: hidden;
 }
+/* ============================================
+   WYSIWYG EDITOR STYLES
+   ============================================ */
+
+.editor-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-bottom: none;
+    flex-wrap: wrap;
+}
+
+.toolbar-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: #333;
+    border: 1px solid #555;
+    color: #e0e0e0;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    border-radius: 4px;
+}
+
+.toolbar-btn:hover {
+    background: #444;
+    border-color: #666;
+}
+
+.toolbar-btn.active {
+    background: #4fc3f7;
+    border-color: #4fc3f7;
+    color: #000;
+}
+
+.toolbar-btn-secondary {
+    padding: 6px 12px;
+    height: 32px;
+    width: auto;
+    background: #444;
+    border: 1px solid #555;
+    color: #e0e0e0;
+    cursor: pointer;
+    font-size: 12px;
+    white-space: nowrap;
+    border-radius: 4px;
+}
+
+.toolbar-btn-secondary:hover {
+    background: #555;
+}
+
+.toolbar-select {
+    height: 32px;
+    padding: 4px 8px;
+    background: #333;
+    border: 1px solid #555;
+    color: #e0e0e0;
+    font-size: 13px;
+    border-radius: 4px;
+}
+
+.toolbar-input {
+    width: 60px;
+    height: 32px;
+    padding: 4px 8px;
+    background: #333;
+    border: 1px solid #555;
+    color: #e0e0e0;
+    font-size: 13px;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.toolbar-color {
+    width: 32px;
+    height: 32px;
+    padding: 2px;
+    border: 1px solid #555;
+    background: #333;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.toolbar-divider {
+    width: 1px;
+    height: 24px;
+    background: #555;
+}
+
+.wysiwyg-editor {
+    min-height: 200px;
+    max-height: 400px;
+    padding: 15px;
+    background: #1a1a1a;
+    border: 1px solid #444;
+    color: #e0e0e0;
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: Arial, sans-serif;
+}
+
+.wysiwyg-editor:focus {
+    outline: none;
+    border-color: #4fc3f7;
+    box-shadow: 0 0 0 2px rgba(79, 195, 247, 0.2);
+}
+
+.wysiwyg-editor strong {
+    font-weight: bold;
+}
+
+.wysiwyg-editor em {
+    font-style: italic;
+}
+
+.wysiwyg-editor:empty:before {
+    content: "Type your text here...";
+    color: #666;
+    font-style: italic;
+}
+
+/* ============================================
+   SETTINGS GROUPS
+   ============================================ */
+
+.settings-group {
+    background: #2a2a2a;
+    border: 1px solid #444;
+    margin-top: 15px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.settings-group summary {
+    padding: 12px;
+    cursor: pointer;
+    user-select: none;
+    font-weight: bold;
+    color: #4fc3f7;
+    background: #222;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s;
+}
+
+.settings-group summary::-webkit-details-marker {
+    display: none;
+}
+
+.settings-group summary::before {
+    content: '▶';
+    font-size: 10px;
+    transition: transform 0.2s;
+}
+
+.settings-group[open] summary::before {
+    transform: rotate(90deg);
+}
+
+.settings-group summary:hover {
+    background: #2a2a2a;
+}
+
+.settings-group[open] summary {
+    border-bottom: 1px solid #444;
+}
+
+.settings-content {
+    padding: 15px;
+}
+
+.setting-row {
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.setting-row:last-child {
+    margin-bottom: 0;
+}
+
+.setting-row label {
+    flex: 0 0 120px;
+    margin: 0;
+    color: #aaa;
+    font-size: 13px;
+}
+
+.setting-row input[type="range"] {
+    flex: 1;
+}
+
+.setting-row input[type="number"],
+.setting-row select {
+    flex: 1;
+    padding: 6px 10px;
+    background: #333;
+    border: 1px solid #555;
+    color: #e0e0e0;
+    font-size: 13px;
+    border-radius: 4px;
+}
+
+.value-display {
+    flex: 0 0 50px;
+    text-align: right;
+    color: #4fc3f7;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.checkbox-row:last-child {
+    margin-bottom: 0;
+}
+
+.checkbox-row input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #4fc3f7;
+}
+
+.checkbox-row label {
+    margin: 0;
+    color: #e0e0e0;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.button-group {
+    display: flex;
+    gap: 5px;
+    flex: 1;
+}
+
+.align-btn {
+    flex: 1;
+    padding: 8px;
+    background: #333;
+    border: 1px solid #555;
+    color: #e0e0e0;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+    border-radius: 4px;
+}
+
+.align-btn:hover {
+    background: #444;
+}
+
+.align-btn.active {
+    background: #4fc3f7;
+    border-color: #4fc3f7;
+    color: #000;
+    font-weight: bold;
+}
+
+/* ============================================
+   MODAL ADJUSTMENTS
+   ============================================ */
+
+.modal-content {
+    width: 700px;
+    max-width: 90vw;
+}
+
+.modal-content h2 {
+    margin-bottom: 20px;
+    color: #fff;
+    font-size: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #444;
+}
+
+#saveTextBtn {
+    background: #4caf50 !important;
+    font-weight: bold;
+}
+
+#saveTextBtn:hover {
+    background: #45a049 !important;
+}
+
+#closeModalBtn {
+    background: #666 !important;
+}
+
+#closeModalBtn:hover {
+    background: #777 !important;
+}
+
+#deleteTextBtn {
+    background: #d32f2f !important;
+}
+
+#deleteTextBtn:hover {
+    background: #b71c1c !important;
+}
