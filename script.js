@@ -159,8 +159,38 @@ function initTextControls() {
     const autoFillBtn = document.getElementById('autoFillBtn');
     const boldBtn = document.getElementById('boldBtn');
     const italicBtn = document.getElementById('italicBtn');
-    const colorBtn = document.getElementById('colorBtn');
-    const textColorPicker = document.getElementById('textColorPicker');
+    const editor = document.getElementById('editTextContent');
+    const editFont = document.getElementById('editFont');
+    const editSize = document.getElementById('editSize');
+    const editColor = document.getElementById('editColor');
+    const editOutline = document.getElementById('editOutline');
+    const outlineColorRow = document.getElementById('outlineColorRow');
+    
+    // Alignment buttons
+    const alignBtns = document.querySelectorAll('.align-btn');
+    alignBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            alignBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+    });
+    
+    // Show/hide outline color
+    editOutline.addEventListener('change', () => {
+        outlineColorRow.style.display = editOutline.checked ? 'flex' : 'none';
+    });
+    
+    // Range value displays
+    const letterSpacing = document.getElementById('editLetterSpacing');
+    const lineHeight = document.getElementById('editLineHeight');
+    
+    letterSpacing.addEventListener('input', (e) => {
+        e.target.nextElementSibling.textContent = e.target.value + 'px';
+    });
+    
+    lineHeight.addEventListener('input', (e) => {
+        e.target.nextElementSibling.textContent = parseFloat(e.target.value).toFixed(1);
+    });
 
     addTextBtn.addEventListener('click', () => {
         const newItem = {
@@ -187,22 +217,54 @@ function initTextControls() {
     });
 
     autoFillBtn.addEventListener('click', () => {
-        const exampleText = `<b>2025 Summary</b>
-
-Meals eaten: 1096
-Money saved: $9112
-Average daily sleep: 5h
-Average daily screentime: 10h
-New friends made: 20
-Girls talked to: 1 (mom)`;
-        document.getElementById('editTextContent').value = exampleText;
+        const exampleHTML = `<strong>2025 Summary</strong><br><br>Meals eaten: 1096<br>Money saved: $9112<br>Average daily sleep: 5h<br>Average daily screentime: 10h<br>New friends made: 20<br>Girls talked to: 1 (mom)`;
+        editor.innerHTML = exampleHTML;
     });
 
-    boldBtn.addEventListener('click', () => wrapSelection('<b>', '</b>'));
-    italicBtn.addEventListener('click', () => wrapSelection('<i>', '</i>'));
-    colorBtn.addEventListener('click', () => {
-        const color = textColorPicker.value;
-        wrapSelection(`<span style="color:${color}">`, '</span>');
+    // Bold button
+    boldBtn.addEventListener('click', () => {
+        document.execCommand('bold', false, null);
+        updateToolbarState();
+    });
+
+    // Italic button
+    italicBtn.addEventListener('click', () => {
+        document.execCommand('italic', false, null);
+        updateToolbarState();
+    });
+    
+    // Font change
+    editFont.addEventListener('change', () => {
+        editor.style.fontFamily = editFont.value;
+    });
+    
+    // Size change
+    editSize.addEventListener('change', () => {
+        editor.style.fontSize = editSize.value + 'px';
+    });
+    
+    // Color change
+    editColor.addEventListener('change', () => {
+        editor.style.color = editColor.value;
+    });
+    
+    // Update toolbar state on selection change
+    editor.addEventListener('mouseup', updateToolbarState);
+    editor.addEventListener('keyup', updateToolbarState);
+    
+    // Keyboard shortcuts
+    editor.addEventListener('keydown', (e) => {
+        if (e.ctrlKey || e.metaKey) {
+            if (e.key === 'b') {
+                e.preventDefault();
+                document.execCommand('bold', false, null);
+                updateToolbarState();
+            } else if (e.key === 'i') {
+                e.preventDefault();
+                document.execCommand('italic', false, null);
+                updateToolbarState();
+            }
+        }
     });
 
     closeModalBtn.addEventListener('click', () => {
@@ -217,28 +279,20 @@ Girls talked to: 1 (mom)`;
     });
 
     deleteTextBtn.addEventListener('click', () => {
-        textItems = textItems.filter(item => item.id !== currentEditingId);
-        textEditorModal.classList.add('hidden');
-        renderTextList();
-        updatePreview();
+        if (confirm('Delete this text item?')) {
+            textItems = textItems.filter(item => item.id !== currentEditingId);
+            textEditorModal.classList.add('hidden');
+            renderTextList();
+            updatePreview();
+        }
     });
+    
+    function updateToolbarState() {
+        boldBtn.classList.toggle('active', document.queryCommandState('bold'));
+        italicBtn.classList.toggle('active', document.queryCommandState('italic'));
+    }
 }
 
-function wrapSelection(start, end) {
-    const textarea = document.getElementById('editTextContent');
-    const selStart = textarea.selectionStart;
-    const selEnd = textarea.selectionEnd;
-    const text = textarea.value;
-    const selected = text.substring(selStart, selEnd);
-    
-    if (selected) {
-        const newText = text.substring(0, selStart) + start + selected + end + text.substring(selEnd);
-        textarea.value = newText;
-        textarea.selectionStart = selStart + start.length;
-        textarea.selectionEnd = selEnd + start.length;
-    }
-    textarea.focus();
-}
 
 function renderTextList() {
     const textList = document.getElementById('textList');
@@ -259,37 +313,84 @@ function openTextEditor(id) {
     const item = textItems.find(t => t.id === id);
     if (!item) return;
 
-    document.getElementById('editTextContent').value = item.content;
+    const editor = document.getElementById('editTextContent');
+    
+    // Convert stored format to HTML
+    const htmlContent = item.content
+        .replace(/<b>/g, '<strong>')
+        .replace(/<\/b>/g, '</strong>')
+        .replace(/<i>/g, '<em>')
+        .replace(/<\/i>/g, '</em>')
+        .replace(/\n/g, '<br>');
+    
+    editor.innerHTML = htmlContent;
+    editor.style.fontFamily = item.font;
+    editor.style.fontSize = item.size + 'px';
+    editor.style.color = item.color;
+    
     document.getElementById('editFont').value = item.font;
     document.getElementById('editSize').value = item.size;
-    document.getElementById('editWeight').value = item.weight;
     document.getElementById('editColor').value = item.color;
     document.getElementById('editLetterSpacing').value = item.letterSpacing;
     document.getElementById('editLineHeight').value = item.lineHeight;
-    document.getElementById('editAlign').value = item.align;
+    
+    // Set alignment buttons
+    document.querySelectorAll('.align-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.align === item.align);
+    });
+    
     document.getElementById('editShadow').checked = item.shadow;
     document.getElementById('editOutline').checked = item.outline || false;
     document.getElementById('editOutlineColor').value = item.outlineColor || '#000000';
+    document.getElementById('outlineColorRow').style.display = item.outline ? 'flex' : 'none';
+    
     document.getElementById('editAnimation').value = item.animation;
     document.getElementById('editDuration').value = item.duration;
     document.getElementById('editDelay').value = item.delay;
     document.getElementById('editEasing').value = item.easing;
+    
+    // Update value displays
+    document.getElementById('editLetterSpacing').nextElementSibling.textContent = item.letterSpacing + 'px';
+    document.getElementById('editLineHeight').nextElementSibling.textContent = item.lineHeight.toFixed(1);
 
     document.getElementById('textEditorModal').classList.remove('hidden');
+    editor.focus();
 }
-
 function saveCurrentText() {
     const item = textItems.find(t => t.id === currentEditingId);
     if (!item) return;
 
-    item.content = document.getElementById('editTextContent').value;
+    const editor = document.getElementById('editTextContent');
+    
+    // Convert HTML back to storage format
+    let content = editor.innerHTML
+        .replace(/<strong>/g, '<b>')
+        .replace(/<\/strong>/g, '</b>')
+        .replace(/<em>/g, '<i>')
+        .replace(/<\/em>/g, '</i>')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<div>/gi, '\n')
+        .replace(/<\/div>/gi, '');
+    
+    // Preserve color spans
+    content = content.replace(/<span style="color:\s*([^"]+)">(.*?)<\/span>/g, '<span style="color:$1">$2</span>');
+    
+    // Remove any other HTML tags except our allowed ones
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = content;
+    
+    item.content = tempDiv.innerHTML || editor.textContent;
     item.font = document.getElementById('editFont').value;
     item.size = parseInt(document.getElementById('editSize').value);
-    item.weight = document.getElementById('editWeight').value;
+    item.weight = 'normal';
     item.color = document.getElementById('editColor').value;
     item.letterSpacing = parseFloat(document.getElementById('editLetterSpacing').value);
     item.lineHeight = parseFloat(document.getElementById('editLineHeight').value);
-    item.align = document.getElementById('editAlign').value;
+    
+    // Get alignment from active button
+    const activeAlign = document.querySelector('.align-btn.active');
+    item.align = activeAlign ? activeAlign.dataset.align : 'center';
+    
     item.shadow = document.getElementById('editShadow').checked;
     item.outline = document.getElementById('editOutline').checked;
     item.outlineColor = document.getElementById('editOutlineColor').value;
@@ -298,7 +399,6 @@ function saveCurrentText() {
     item.delay = parseFloat(document.getElementById('editDelay').value);
     item.easing = document.getElementById('editEasing').value;
 }
-
 // Music Controls
 function initMusicControls() {
     const musicFile = document.getElementById('musicFile');
