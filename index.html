@@ -143,61 +143,81 @@
     <div id="textEditorModal" class="modal hidden">
         <div class="modal-content">
             <h2>Edit Text</h2>
-            <textarea id="editTextContent"></textarea>
-            
-            <label>Font:</label>
-            <select id="editFont">
-                <option value="Arial">Arial</option>
-                <option value="Helvetica">Helvetica</option>
-                <option value="Times New Roman">Times New Roman</option>
-                <option value="Courier New">Courier New</option>
-                <option value="Georgia">Georgia</option>
-            </select>
-            
-            <label>Size:</label>
-            <input type="number" id="editSize" value="32" min="10" max="200">
-            
-            <label>Weight:</label>
-            <select id="editWeight">
-                <option value="normal">Normal</option>
-                <option value="bold">Bold</option>
-                <option value="lighter">Lighter</option>
-            </select>
-            
-            <label>Color:</label>
-            <input type="color" id="editColor" value="#ffffff">
-            
-            <label>Letter Spacing:</label>
-            <input type="number" id="editLetterSpacing" value="0" step="0.5">
-            
-            <label>Line Height:</label>
-            <input type="number" id="editLineHeight" value="1.5" step="0.1" min="0.5" max="3">
-            
-            <label>Align:</label>
-            <select id="editAlign">
-                <option value="left">Left</option>
-                <option value="center">Center</option>
-                <option value="right">Right</option>
-            </select>
-            
-            <label>Text Shadow:</label>
-            <input type="checkbox" id="editShadow">
-            
-            <label>Text Outline:</label>
-            <input type="checkbox" id="editOutline">
-            <label>Outline Color:</label>
-            <input type="color" id="editOutlineColor" value="#000000">
-            
-            <button id="autoFillBtn" style="margin-top: 10px;">Auto-Fill Example</button>
-            <div style="margin-top: 10px;">
-                <button id="boldBtn" class="format-btn">Bold</button>
-                <button id="italicBtn" class="format-btn">Italic</button>
-                <input type="color" id="textColorPicker" style="width: 40px; height: 30px;">
-                <button id="colorBtn" class="format-btn">Color</button>
+            <div class="editor-toolbar">
+                <button id="boldBtn" class="toolbar-btn" title="Bold (Ctrl+B)"><strong>B</strong></button>
+                <button id="italicBtn" class="toolbar-btn" title="Italic (Ctrl+I)"><em>I</em></button>
+                <div class="toolbar-divider"></div>
+                <select id="editFont" class="toolbar-select">
+                    <option value="Arial">Arial</option>
+                    <option value="Helvetica">Helvetica</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Courier New">Courier New</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Verdana">Verdana</option>
+                    <option value="Impact">Impact</option>
+                </select>
+                <input type="number" id="editSize" class="toolbar-input" min="10" max="200" value="32" title="Font Size">
+                <div class="toolbar-divider"></div>
+                <input type="color" id="editColor" class="toolbar-color" value="#ffffff" title="Text Color">
+                <div class="toolbar-divider"></div>
+                <button id="autoFillBtn" class="toolbar-btn-secondary">📋 Insert Example</button>
             </div>
-                        
-            <h3>Animation</h3>
-            <select id="editAnimation">
+
+            <div id="editTextContent" class="wysiwyg-editor" contenteditable="true" spellcheck="false"></div>
+            
+            <details class="settings-group" open>
+                <summary>📐 Text Layout</summary>
+                <div class="settings-content">
+                    <div class="setting-row">
+                        <label>Alignment</label>
+                        <div class="button-group">
+                            <button class="align-btn" data-align="left">⬅️ Left</button>
+                            <button class="align-btn active" data-align="center">↔️ Center</button>
+                            <button class="align-btn" data-align="right">➡️ Right</button>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-row">
+                        <label>Letter Spacing</label>
+                        <input type="range" id="editLetterSpacing" min="-2" max="10" value="0" step="0.5">
+                        <span class="value-display">0px</span>
+                    </div>
+                    
+                    <div class="setting-row">
+                        <label>Line Height</label>
+                        <input type="range" id="editLineHeight" min="0.8" max="3" value="1.5" step="0.1">
+                        <span class="value-display">1.5</span>
+                    </div>
+                </div>
+            </details>
+
+            <details class="settings-group">
+                <summary>✨ Text Effects</summary>
+                <div class="settings-content">
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="editShadow">
+                        <label for="editShadow">Drop Shadow</label>
+                    </div>
+                    
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="editOutline">
+                        <label for="editOutline">Text Outline</label>
+                    </div>
+                    
+                    <div class="setting-row" id="outlineColorRow" style="display: none;">
+                        <label>Outline Color</label>
+                        <input type="color" id="editOutlineColor" value="#000000">
+                    </div>
+                </div>
+            </details>
+            
+            <details class="settings-group" open>
+                <summary>🎬 Animation</summary>
+                <div class="settings-content">
+                    <div class="setting-row">
+                        <label>Type</label>
+            
+                <select id="editAnimation">
                 <option value="creditsScroll">Movie Credits Scroll</option>
                 <option value="slideLeft">Slide In Left</option>
                 <option value="slideRight">Slide In Right</option>
@@ -207,24 +227,37 @@
                 <option value="zoomIn">Zoom In</option>
                 <option value="zoomOut">Zoom Out</option>
             </select>
+                    </div>
+                    
+                    <div class="setting-row">
+                        <label>Duration</label>
+                        <input type="number" id="editDuration" value="3" step="0.1" min="0.1">
+                        <span style="color: #888; font-size: 12px;">seconds</span>
+                    </div>
+                    
+                    <div class="setting-row">
+                        <label>Delay</label>
+                        <input type="number" id="editDelay" value="0" step="0.1" min="0">
+                        <span style="color: #888; font-size: 12px;">seconds</span>
+                    </div>
+                    
+                    <div class="setting-row">
+                        <label>Easing</label>
+                        <select id="editEasing">
+                            <option value="none">Linear</option>
+                            <option value="power1.in">Ease In</option>
+                            <option value="power1.out">Ease Out</option>
+                            <option value="power1.inOut">Ease In-Out</option>
+                        </select>
+                    </div>
+                </div>
+            </details>
             
-            <label>Duration (s):</label>
-            <input type="number" id="editDuration" value="3" step="0.1" min="0.1">
-            
-            <label>Delay (s):</label>
-            <input type="number" id="editDelay" value="0" step="0.1" min="0">
-            
-            <label>Easing:</label>
-            <select id="editEasing">
-                <option value="none">Linear</option>
-                <option value="power1.in">Ease In</option>
-                <option value="power1.out">Ease Out</option>
-                <option value="power1.inOut">Ease In-Out</option>
-            </select>
-            
-            <button id="saveTextBtn">Save</button>
-            <button id="closeModalBtn">Close</button>
-            <button id="deleteTextBtn">Delete</button>
+            <div style="display: flex; gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 2px solid #444;">
+                <button id="saveTextBtn" style="flex: 1;">Save</button>
+                <button id="closeModalBtn" style="flex: 1;"> Close</button>
+                <button id="deleteTextBtn" style="flex: 1;"> Delete</button>
+            </div>
         </div>
     </div>
     
